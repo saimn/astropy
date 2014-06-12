@@ -18,71 +18,8 @@ from . import fixedwidth
 from ...utils import OrderedDict
 
 
-class Daophot(core.BaseReader):
-    """Read a DAOphot file.
-    Example::
-
-      #K MERGERAD   = INDEF                   scaleunit  %-23.7g
-      #K IRAF = NOAO/IRAFV2.10EXPORT version %-23s
-      #K USER = davis name %-23s
-      #K HOST = tucana computer %-23s
-      #
-      #N ID    XCENTER   YCENTER   MAG         MERR          MSKY           NITER    \\
-      #U ##    pixels    pixels    magnitudes  magnitudes    counts         ##       \\
-      #F %-9d  %-10.3f   %-10.3f   %-12.3f     %-14.3f       %-15.7g        %-6d
-      #
-      #N         SHARPNESS   CHI         PIER  PERROR                                \\
-      #U         ##          ##          ##    perrors                               \\
-      #F         %-23.3f     %-12.3f     %-6d  %-13s
-      #
-      14       138.538     INDEF   15.461      0.003         34.85955       4        \\
-                  -0.032      0.802       0     No_error
-
-    The keywords defined in the #K records are available via the output table
-    ``meta`` attribute::
-
-      >>> import os
-      >>> from astropy.io import ascii
-      >>> filename = os.path.join(ascii.__path__[0], 'tests/t/daophot.dat')
-      >>> data = ascii.read(filename)
-      >>> for name, keyword in data.meta['keywords'].items():
-      ...     print(name, keyword['value'], keyword['units'], keyword['format'])
-      ...
-      MERGERAD INDEF scaleunit %-23.7g
-      IRAF NOAO/IRAFV2.10EXPORT version %-23s
-      USER  name %-23s
-      ...
-
-    The unit and formats are available in the output table columns::
-
-      >>> for colname in data.colnames:
-      ...     col = data[colname]
-      ...     print(colname, col.unit, col.format)
-      ...
-      ID None %-9d
-      XCENTER pixels %-10.3f
-      YCENTER pixels %-10.3f
-      ...
-
-    Any column values of INDEF are interpreted as a missing value and will be
-    masked out in the resultant table.
-    """
-    _format_name = 'daophot'
-    _io_registry_format_aliases = ['daophot']
-    _io_registry_can_write = False
-    _description = 'IRAF DAOphot format table'
-
-    def __init__(self):
-        core.BaseReader.__init__(self)
-        self.header = DaophotHeader()
-        self.inputter = core.ContinuationLinesInputter()
-        self.inputter.no_continue = r'\s*#'
-        self.data.splitter = fixedwidth.FixedWidthSplitter()
-        self.data.start_line = 0
-        self.data.comment = r'\s*#'
-
-    def write(self, table=None):
-        raise NotImplementedError
+class DaophotData(core.BaseData):
+    splitter_class = fixedwidth.FixedWidthSplitter
 
 
 class DaophotHeader(core.BaseHeader):
@@ -199,3 +136,71 @@ class DaophotHeader(core.BaseHeader):
 
         # INDEF is the missing value marker
         self.data.fill_values.append(('INDEF', '0'))
+
+
+class Daophot(core.BaseReader):
+    """Read a DAOphot file.
+    Example::
+
+      #K MERGERAD   = INDEF                   scaleunit  %-23.7g
+      #K IRAF = NOAO/IRAFV2.10EXPORT version %-23s
+      #K USER = davis name %-23s
+      #K HOST = tucana computer %-23s
+      #
+      #N ID    XCENTER   YCENTER   MAG         MERR          MSKY           NITER    \\
+      #U ##    pixels    pixels    magnitudes  magnitudes    counts         ##       \\
+      #F %-9d  %-10.3f   %-10.3f   %-12.3f     %-14.3f       %-15.7g        %-6d
+      #
+      #N         SHARPNESS   CHI         PIER  PERROR                                \\
+      #U         ##          ##          ##    perrors                               \\
+      #F         %-23.3f     %-12.3f     %-6d  %-13s
+      #
+      14       138.538     INDEF   15.461      0.003         34.85955       4        \\
+                  -0.032      0.802       0     No_error
+
+    The keywords defined in the #K records are available via the output table
+    ``meta`` attribute::
+
+      >>> import os
+      >>> from astropy.io import ascii
+      >>> filename = os.path.join(ascii.__path__[0], 'tests/t/daophot.dat')
+      >>> data = ascii.read(filename)
+      >>> for name, keyword in data.meta['keywords'].items():
+      ...     print(name, keyword['value'], keyword['units'], keyword['format'])
+      ...
+      MERGERAD INDEF scaleunit %-23.7g
+      IRAF NOAO/IRAFV2.10EXPORT version %-23s
+      USER  name %-23s
+      ...
+
+    The unit and formats are available in the output table columns::
+
+      >>> for colname in data.colnames:
+      ...     col = data[colname]
+      ...     print(colname, col.unit, col.format)
+      ...
+      ID None %-9d
+      XCENTER pixels %-10.3f
+      YCENTER pixels %-10.3f
+      ...
+
+    Any column values of INDEF are interpreted as a missing value and will be
+    masked out in the resultant table.
+    """
+    _format_name = 'daophot'
+    _io_registry_format_aliases = ['daophot']
+    _io_registry_can_write = False
+    _description = 'IRAF DAOphot format table'
+
+    header_class = DaophotHeader
+    data_class = DaophotData
+    inputter_class = core.ContinuationLinesInputter
+
+    def __init__(self):
+        core.BaseReader.__init__(self)
+        self.inputter.no_continue = r'\s*#'
+        self.data.start_line = 0
+        self.data.comment = r'\s*#'
+
+    def write(self, table=None):
+        raise NotImplementedError

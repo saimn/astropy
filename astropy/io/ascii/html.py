@@ -18,16 +18,15 @@ from ...utils.xml import writer
 
 from copy import deepcopy
 
+
 class SoupString(str):
     """
     Allows for strings to hold BeautifulSoup data.
     """
 
-    def __new__(cls, *args, **kwargs):
-        return str.__new__(cls, *args, **kwargs)
-
     def __init__(self, val):
         self.soup = val
+
 
 class ListWriter:
     """
@@ -40,6 +39,7 @@ class ListWriter:
     def write(self, data):
         self.out.append(data)
 
+
 def identify_table(soup, htmldict, numtable):
     """
     Checks whether the given BeautifulSoup tag is the table
@@ -47,7 +47,7 @@ def identify_table(soup, htmldict, numtable):
     """
 
     if soup is None or soup.name != 'table':
-        return False # Tag is not a <table>
+        return False  # Tag is not a <table>
 
     elif 'table_id' not in htmldict:
         return numtable == 1
@@ -57,36 +57,34 @@ def identify_table(soup, htmldict, numtable):
         return 'id' in soup.attrs and soup['id'] == table_id
     elif isinstance(table_id, int):
         return table_id == numtable
-    
+
     # Return False if an invalid parameter is given
     return False
-    
+
 
 class HTMLInputter(core.BaseInputter):
-    """
-    Input lines of HTML in a valid form.
+    """Input lines of HTML in a valid form.
 
     This requires `BeautifulSoup
         <http://www.crummy.com/software/BeautifulSoup/>`_ to be installed.
     """
 
     def process_lines(self, lines):
-        """
-        Convert the given input into a list of SoupString rows
+        """ Convert the given input into a list of SoupString rows
         for further processing.
         """
-        
+
         try:
             from bs4 import BeautifulSoup
         except ImportError:
-            raise core.OptionalTableImportError('BeautifulSoup must be '
-                                        'installed to read HTML tables')
-        
+            raise core.OptionalTableImportError(
+                'BeautifulSoup must be installed to read HTML tables')
+
         soup = BeautifulSoup('\n'.join(lines))
         tables = soup.find_all('table')
         for i, possible_table in enumerate(tables):
             if identify_table(possible_table, self.html, i + 1):
-                table = possible_table # Find the correct table
+                table = possible_table  # Find the correct table
                 break
         else:
             if isinstance(self.html['table_id'], int):
@@ -95,21 +93,18 @@ class HTMLInputter(core.BaseInputter):
                 err_descr = "id '{0}'".format(self.html['table_id'])
             raise core.InconsistentTableError(
                 'ERROR: HTML table {0} not found'.format(err_descr))
-        
-        # Get all table rows
-        soup_list = [SoupString(x) for x in table.find_all('tr')]
 
-        return soup_list
-        
+        # Get all table rows
+        return [SoupString(x) for x in table.find_all('tr')]
+
+
 class HTMLSplitter(core.BaseSplitter):
     """
     Split HTML table data.
     """
 
     def __call__(self, lines):
-        """
-        Return HTML data from lines as a generator.
-        """
+        """Return HTML data from lines as a generator."""
         for line in lines:
             if not isinstance(line, SoupString):
                 raise TypeError('HTML lines should be of type SoupString')
@@ -117,8 +112,9 @@ class HTMLSplitter(core.BaseSplitter):
             header_elements = soup.find_all('th')
             if header_elements:
                 # Return multicolumns as tuples for HTMLHeader handling
-                yield [(el.text.strip(), el['colspan']) if el.has_attr('colspan')
-                        else el.text.strip() for el in header_elements]
+                yield [(el.text.strip(), el['colspan'])
+                       if el.has_attr('colspan')
+                       else el.text.strip() for el in header_elements]
             data_elements = soup.find_all('td')
             if data_elements:
                 yield [el.text.strip() for el in data_elements]
@@ -126,19 +122,18 @@ class HTMLSplitter(core.BaseSplitter):
             raise core.InconsistentTableError('HTML tables must contain data '
                                               'in a <table> tag')
 
+
 class HTMLOutputter(core.TableOutputter):
-    """
-    Output the HTML data as an ``astropy.table.Table`` object.
+    """Output the HTML data as an ``astropy.table.Table`` object.
 
     This subclass allows for the final table to contain
     multidimensional columns (defined using the colspan attribute
     of <th>).
+
     """
 
     def __call__(self, cols, meta):
-        """
-        Process the data in multidimensional columns.
-        """
+        """Process the data in multidimensional columns."""
         new_cols = []
         col_num = 0
 
@@ -156,14 +151,14 @@ class HTMLOutputter(core.TableOutputter):
                 col_num += 1
 
         return super(HTMLOutputter, self).__call__(new_cols, meta)
-        
+
 
 class HTMLHeader(core.BaseHeader):
+    splitter_class = HTMLSplitter
+
     def start_line(self, lines):
-        """
-        Return the line number at which header data begins.
-        """
-        
+        """Return the line number at which header data begins."""
+
         for i, line in enumerate(lines):
             if not isinstance(line, SoupString):
                 raise TypeError('HTML lines should be of type SoupString')
@@ -195,33 +190,32 @@ class HTMLHeader(core.BaseHeader):
                 new_names.append(name)
 
         self.names = new_names
-    
+
 
 class HTMLData(core.BaseData):
+    splitter_class = HTMLSplitter
+
     def start_line(self, lines):
-        """
-        Return the line number at which table data begins.
-        """
-        
+        """Return the line number at which table data begins."""
+
         for i, line in enumerate(lines):
             if not isinstance(line, SoupString):
                 raise TypeError('HTML lines should be of type SoupString')
             soup = line.soup
-            
+
             if soup.td is not None:
                 if soup.th is not None:
-                    raise core.InconsistentTableError('HTML tables cannot '
-                                'have headings and data in the same row')
+                    raise core.InconsistentTableError(
+                        'HTML tables cannot have headings and data in the '
+                        'same row')
                 return i
-        
+
         raise core.InconsistentTableError('No start line found for HTML data')
 
     def end_line(self, lines):
-        """
-        Return the line number at which table data ends.
-        """
+        """Return the line number at which table data ends."""
         last_index = -1
-        
+
         for i, line in enumerate(lines):
             if not isinstance(line, SoupString):
                 raise TypeError('HTML lines should be of type SoupString')
@@ -233,9 +227,9 @@ class HTMLData(core.BaseData):
             return None
         return last_index + 1
 
+
 class HTML(core.BaseReader):
-    """
-    Read and write HTML tables.
+    """Read and write HTML tables.
 
     In order to customize input and output, a dict of parameters may
     be passed to this class holding specific customizations.
@@ -257,61 +251,46 @@ class HTML(core.BaseReader):
             columns if this parameter is true, and if not then it will
             use the syntax 1.36583e-13 .. 1.36583e-13 for output. If not
             present, this parameter will be true by default.
-    
+
     """
-    
+
     _format_name = 'html'
     _io_registry_format_aliases = ['html']
     _io_registry_suffix = '.html'
     _description = 'HTML table'
+
+    header_class = HTMLHeader
+    data_class = HTMLData
+    inputter_class = HTMLInputter
+    outputter_class = HTMLOutputter
 
     def __init__(self, htmldict={}):
         """
         Initialize classes for HTML reading and writing.
         """
         core.BaseReader.__init__(self)
-        self.inputter = HTMLInputter()
-        self.header = HTMLHeader()
-        self.data = HTMLData()
-        self.header.splitter = HTMLSplitter()
-        self.header.inputter = HTMLInputter()
-        self.data.splitter = HTMLSplitter()
-        self.data.inputter = HTMLInputter()
-        self.data.header = self.header
-        self.header.data = self.data
         self.html = deepcopy(htmldict)
-        if 'multicol' not in htmldict:
-            self.html['multicol'] = True
-        if 'table_id' not in htmldict:
-            self.html['table_id'] = 1
+        self.html.setdefault('multicol', True)
+        self.html.setdefault('table_id', 1)
         self.inputter.html = self.html
 
-    def read(self, table):
-        """
-        Read the ``table`` in HTML format and return a resulting ``Table``.
-        """
-
-        self.outputter = HTMLOutputter()
-        return core.BaseReader.read(self, table)
-    
     def write(self, table):
-        """
-        Return data in ``table`` converted to HTML as a list of strings.
-        """
+        """Return data in ``table`` converted to HTML as a list of strings."""
 
         cols = list(six.itervalues(table.columns))
         lines = []
 
         # Use XMLWriter to output HTML to lines
         w = writer.XMLWriter(ListWriter(lines))
-        
+
         with w.tag('html'):
             with w.tag('head'):
                 # Declare encoding and set CSS style for table
-                with w.tag('meta', attrib={'charset':'utf-8'}):
+                with w.tag('meta', attrib={'charset': 'utf-8'}):
                     pass
-                with w.tag('meta', attrib={'http-equiv':'Content-type',
-                                    'content':'text/html;charset=UTF-8'}):
+                with w.tag('meta',
+                           attrib={'http-equiv': 'Content-type',
+                                   'content': 'text/html;charset=UTF-8'}):
                     pass
                 if 'css' in self.html:
                     with w.tag('style'):

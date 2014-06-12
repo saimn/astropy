@@ -839,11 +839,17 @@ class BaseReader(object):
     exclude_names = None
     strict_names = False
 
+    header_class = BaseHeader
+    data_class = BaseData
+    inputter_class = BaseInputter
+    outputter_class = TableOutputter
+    header_kwargs = {}
+
     def __init__(self):
-        self.header = BaseHeader()
-        self.data = BaseData()
-        self.inputter = BaseInputter()
-        self.outputter = TableOutputter()
+        self.header = self.header_class(**self.header_kwargs)
+        self.data = self.data_class()
+        self.inputter = self.inputter_class()
+        self.outputter = self.outputter_class()
 
         # Data and Header instances benefit from a little cross-coupling.
         # Header may need to know about number of data columns for auto-column
@@ -882,10 +888,6 @@ class BaseReader(object):
             # Strings only
             if os.linesep not in table + '':
                 self.data.table_name = os.path.basename(table)
-
-        # Same from __init__.  ??? Do these need to be here?
-        self.data.header = self.header
-        self.header.data = self.data
 
         # Get a list of the lines (rows) in the table
         self.lines = self.inputter.get_lines(table)

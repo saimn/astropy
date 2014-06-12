@@ -86,7 +86,7 @@ class FixedWidthHeader(core.BaseHeader):
         """Initialize the header Column objects from the table ``lines``.
 
         Based on the previously set Header attributes find or create the column names.
-        Sets ``self.cols`` with the list of Columns. 
+        Sets ``self.cols`` with the list of Columns.
 
         :param lines: list of table lines
         :returns: None
@@ -137,7 +137,7 @@ class FixedWidthHeader(core.BaseHeader):
 
         self._set_cols_from_names()
 
-        # Set column start and end positions. 
+        # Set column start and end positions.
         for i, col in enumerate(self.cols):
             col.start = starts[i]
             col.end = ends[i]
@@ -236,8 +236,10 @@ class FixedWidthData(core.BaseData):
 
 
 class FixedWidth(core.BaseReader):
-    """Read or write a fixed width table with a single header line that defines column
-    names and positions.  Examples::
+    """Read or write a fixed width table with a single header line that defines
+    column names and positions.
+
+    Examples::
 
       # Bar delimiter in header and data
 
@@ -263,18 +265,17 @@ class FixedWidth(core.BaseReader):
     :param col_ends: list of end positions (inclusive) for each column
     :param delimiter_pad: padding around delimiter when writing (default = None)
     :param bookend: put the delimiter at start and end of line when writing (default = False)
+
     """
     _format_name = 'fixed_width'
     _description = 'Fixed width'
 
-    def __init__(self, col_starts=None, col_ends=None, delimiter_pad=' ', bookend=True):
+    header_class = FixedWidthHeader
+    data_class = FixedWidthData
+
+    def __init__(self, col_starts=None, col_ends=None, delimiter_pad=' ',
+                 bookend=True):
         core.BaseReader.__init__(self)
-
-        self.header = FixedWidthHeader()
-        self.data = FixedWidthData()
-        self.data.header = self.header
-        self.header.data = self.data
-
         self.header.splitter.delimiter = '|'
         self.data.splitter.delimiter = '|'
         self.data.splitter.delimiter_pad = delimiter_pad

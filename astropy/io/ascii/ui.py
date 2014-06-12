@@ -115,7 +115,7 @@ def read(table, guess=None, **kwargs):
 
     # If an Outputter is supplied in kwargs that will take precedence.
     new_kwargs = {}
-    new_kwargs['Outputter'] = core.TableOutputter
+    # new_kwargs['Outputter'] = core.TableOutputter
     new_kwargs.update(kwargs)
 
     # Get the Reader class based on possible format and Reader kwarg inputs.
