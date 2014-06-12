@@ -32,13 +32,15 @@ from . import connect
 # Global dictionary mapping format arg to the corresponding Reader class
 FORMAT_CLASSES = {}
 
+
 class MaskedConstant(numpy.ma.core.MaskedConstant):
     """A trivial extension of numpy.ma.masked
 
     We want to be able to put the generic term ``masked`` into a dictionary.
-    In python 2.7 we can just use ``numpy.ma.masked``, but in python 3.1 and 3.2 that
-    is not hashable, see https://github.com/numpy/numpy/issues/4660
+    In python 2.7 we can just use ``numpy.ma.masked``, but in python 3.1 and
+    3.2 that is not hashable, see https://github.com/numpy/numpy/issues/4660.
     So, we need to extend it here with a hash value.
+
     """
     def __hash__(self):
         '''All instances of this class shall have the same hash.'''
@@ -47,6 +49,7 @@ class MaskedConstant(numpy.ma.core.MaskedConstant):
 
 masked = MaskedConstant()
 
+
 class InconsistentTableError(ValueError):
     """
     Indicates that an input table is inconsistent in some way.
@@ -54,6 +57,7 @@ class InconsistentTableError(ValueError):
     The default behavior of ``BaseReader`` is to throw an instance of
     this class if a data row doesn't match the header.
     """
+
 
 class OptionalTableImportError(ImportError):
     """
@@ -130,9 +134,11 @@ class BaseInputter(object):
     table can be one of:
 
     * File name
-    * String (newline separated) with all header and data lines (must have at least 2 lines)
+    * String (newline separated) with all header and data lines (must have at
+      least 2 lines)
     * File-like object with read() method
     * List of strings
+
     """
     def get_lines(self, table):
         """Get the lines from the ``table`` input.
@@ -154,8 +160,8 @@ class BaseInputter(object):
                 iter(table)
                 lines = table
             except TypeError:
-                raise TypeError(
-                    'Input "table" must be a string (filename or data) or an iterable')
+                raise TypeError('Input "table" must be a string (filename or '
+                                'data) or an iterable')
 
         return self.process_lines(lines)
 
@@ -194,8 +200,12 @@ class BaseSplitter(object):
     delimiter = None
 
     def process_line(self, line):
-        """Remove whitespace at the beginning or end of line.  This is especially useful for
-        whitespace-delimited files to prevent spurious columns at the beginning or end."""
+        """Remove whitespace at the beginning or end of line.
+
+        This is especially useful for whitespace-delimited files to prevent
+        spurious columns at the beginning or end.
+
+        """
         return line.strip()
 
     def process_val(self, val):
@@ -247,11 +257,16 @@ class DefaultSplitter(BaseSplitter):
     skipinitialspace = True
 
     def process_line(self, line):
-        """Remove whitespace at the beginning or end of line.  This is especially useful for
-        whitespace-delimited files to prevent spurious columns at the beginning or end.
-        If splitting on whitespace then replace unquoted tabs with space first"""
+        """Remove whitespace at the beginning or end of line.
+
+        This is especially useful for whitespace-delimited files to prevent
+        spurious columns at the beginning or end.  If splitting on whitespace
+        then replace unquoted tabs with space first
+
+        """
         if self.delimiter == '\s':
-            line = _replace_tab_with_space(line, self.escapechar, self.quotechar)
+            line = _replace_tab_with_space(line, self.escapechar,
+                                           self.quotechar)
         return line.strip()
 
     def __init__(self):
@@ -259,11 +274,12 @@ class DefaultSplitter(BaseSplitter):
         self.csv_writer_out = StringIO()
 
     def __call__(self, lines):
-        """Return an iterator over the table ``lines``, where each iterator output
-        is a list of the split line values.
+        """Return an iterator over the table ``lines``, where each iterator
+        output is a list of the split line values.
 
         :param lines: list of table lines
         :returns: iterator
+
         """
         if self.process_line:
             lines = [self.process_line(x) for x in lines]
@@ -317,7 +333,9 @@ class DefaultSplitter(BaseSplitter):
 
 
 def _replace_tab_with_space(line, escapechar, quotechar):
-    """Replace tab with space within ``line`` while respecting quoted substrings"""
+    """Replace tab with space within ``line`` while respecting quoted
+    substrings.
+    """
     newline = []
     in_quote = False
     lastchar = 'NONE'
@@ -371,34 +389,39 @@ class BaseHeader(object):
         self.cols = [Column(name=x) for x in self.names]
 
     def update_meta(self, lines, meta):
-        """
-        Extract any table-level metadata, e.g. keywords, comments, column metadata, from
-        the table ``lines`` and update the OrderedDict ``meta`` in place.  This base
-        method does nothing.
+        """Extract any table-level metadata.
+
+        Extract keywords, comments, column metadata, from the table ``lines``
+        and update the OrderedDict ``meta`` in place.  This base method does
+        nothing.
+
         """
 
     def get_cols(self, lines):
         """Initialize the header Column objects from the table ``lines``.
 
-        Based on the previously set Header attributes find or create the column names.
-        Sets ``self.cols`` with the list of Columns.
+        Based on the previously set Header attributes find or create the column
+        names.  Sets ``self.cols`` with the list of Columns.
 
         :param lines: list of table lines
         :returns: None
-        """
 
-        start_line = _get_line_index(self.start_line, self.process_lines(lines))
+        """
+        start_line = _get_line_index(self.start_line,
+                                     self.process_lines(lines))
+
         if start_line is None:
-            # No header line so auto-generate names from n_data_cols
-            # Get the data values from the first line of table data to determine n_data_cols
+            # No header line so auto-generate names from n_data_cols.  Get the
+            # data values from the first line of table data to determine
+            # n_data_cols.
             try:
                 first_data_vals = next(self.data.get_str_vals())
             except StopIteration:
-                raise InconsistentTableError('No data lines found so cannot autogenerate '
-                                             'column names')
+                raise InconsistentTableError('No data lines found so cannot '
+                                             'autogenerate column names')
             n_data_cols = len(first_data_vals)
-            self.names = [self.auto_format % i for i in range(1, n_data_cols + 1)]
-
+            self.names = [self.auto_format % i
+                          for i in range(1, n_data_cols + 1)]
         else:
             for i, line in enumerate(self.process_lines(lines)):
                 if i == start_line:
@@ -460,11 +483,12 @@ class BaseData(object):
     fill_exclude_names = None
 
     def __init__(self):
-        # Need to make sure fill_values list is instance attribute, not class attribute.
-        # On read, this will be overwritten by the default in the ui.read (thus, in
-        # the current implementation there can be no different default for different
-        # Readers). On write, ui.py does not specify a default, so this line here matters.
-        # Currently, the default matches the numpy default for masked values. 
+        # Need to make sure fill_values list is instance attribute, not class
+        # attribute.  On read, this will be overwritten by the default in the
+        # ui.read (thus, in the current implementation there can be no
+        # different default for different Readers). On write, ui.py does not
+        # specify a default, so this line here matters.  Currently, the default
+        # matches the numpy default for masked values.
         self.fill_values = [(masked, '--')]
         self.formats = {}
         self.splitter = self.__class__.splitter_class()
@@ -502,16 +526,19 @@ class BaseData(object):
     def masks(self, cols):
         """Set fill value for each column and then apply that fill value
 
-        In the first step it is evaluated with value from ``fill_values`` applies to
-        which column using ``fill_include_names`` and ``fill_exclude_names``.
-        In the second step all replacements are done for the appropriate columns.
+        In the first step it is evaluated with value from ``fill_values``
+        applies to which column using ``fill_include_names`` and
+        ``fill_exclude_names``.  In the second step all replacements are done
+        for the appropriate columns.
+
         """
         if self.fill_values:
             self._set_fill_values(cols)
             self._set_masks(cols)
 
     def _set_fill_values(self, cols):
-        """Set the fill values of the individual cols based on fill_values of BaseData
+        """Set the fill values of the individual cols based on fill_values of
+        BaseData.
 
         fill values has the following form:
         <fill_spec> = (<bad_value>, <fill_value>, <optional col_name>...)
@@ -691,12 +718,13 @@ class TableOutputter(BaseOutputter):
     def __call__(self, cols, meta):
         self._convert_vals(cols)
 
-        # If there are any values that were filled and tagged with a mask bit then this
-        # will be a masked table.  Otherwise use a plain table.
-        masked = any(hasattr(col, 'mask') and numpy.any(col.mask) for col in cols)
+        # If there are any values that were filled and tagged with a mask bit
+        # then this will be a masked table.  Otherwise use a plain table.
+        masked = any(hasattr(col, 'mask') and numpy.any(col.mask)
+                     for col in cols)
 
-        out = Table([x.data for x in cols], names=[x.name for x in cols], masked=masked,
-                    meta=meta['table'])
+        out = Table([x.data for x in cols], names=[x.name for x in cols],
+                    masked=masked, meta=meta['table'])
         for col, out_col in zip(cols, out.columns.values()):
             if masked and hasattr(col, 'mask'):
                 out_col.data.mask = col.mask
@@ -739,7 +767,8 @@ def _is_number(x):
     return False
 
 
-def _apply_include_exclude_names(table, names, include_names, exclude_names, strict_names):
+def _apply_include_exclude_names(table, names, include_names, exclude_names,
+                                 strict_names):
     """Apply names, include_names and exclude_names to a table.
 
     :param table: input table (Reader object, NumPy struct array, list of lists, etc)
@@ -747,10 +776,13 @@ def _apply_include_exclude_names(table, names, include_names, exclude_names, str
     :param include_names: list of names to include in output (default=None selects all names)
     :param exclude_names: list of names to exlude from output (applied after ``include_names``)
     :param strict_names: apply strict checks on column names
+
     """
-    # Check column names.  This must be done before applying the names transformation
-    # so that guessing will fail appropriately if `names` is supplied.  For instance
-    # if the basic reader is given a table with no column header row.
+
+    # Check column names.  This must be done before applying the names
+    # transformation so that guessing will fail appropriately if `names` is
+    # supplied.  For instance if the basic reader is given a table with no
+    # column header row.
     if strict_names:
         # Impose strict requirements on column names (normally used in guessing)
         bads = [" ", ",", "|", "\t", "'", '"']
@@ -789,16 +821,16 @@ def _apply_include_exclude_names(table, names, include_names, exclude_names, str
 
 @six.add_metaclass(MetaBaseReader)
 class BaseReader(object):
-    """Class providing methods to read and write an ASCII table using the specified
-    header, data, inputter, and outputter instances.
+    """Class providing methods to read and write an ASCII table using the
+    specified header, data, inputter, and outputter instances.
 
     Typical usage is to instantiate a Reader() object and customize the
     ``header``, ``data``, ``inputter``, and ``outputter`` attributes.  Each
     of these is an object of the corresponding class.
 
-    There is one method ``inconsistent_handler`` that can be used to customize the
-    behavior of ``read()`` in the event that a data row doesn't match the header.
-    The default behavior is to raise an InconsistentTableError.
+    There is one method ``inconsistent_handler`` that can be used to customize
+    the behavior of ``read()`` in the event that a data row doesn't match the
+    header.  The default behavior is to raise an InconsistentTableError.
 
     """
 
@@ -812,33 +844,36 @@ class BaseReader(object):
         self.data = BaseData()
         self.inputter = BaseInputter()
         self.outputter = TableOutputter()
-        # Data and Header instances benefit from a little cross-coupling.  Header may need to
-        # know about number of data columns for auto-column name generation and Data may
-        # need to know about header (e.g. for fixed-width tables where widths are spec'd in header.
+
+        # Data and Header instances benefit from a little cross-coupling.
+        # Header may need to know about number of data columns for auto-column
+        # name generation and Data may need to know about header (e.g. for
+        # fixed-width tables where widths are spec'd in header.
         self.data.header = self.header
         self.header.data = self.data
 
-        # Metadata, consisting of table-level meta and column-level meta.  The latter
-        # could include information about column type, description, formatting, etc,
-        # depending on the table meta format.
-        self.meta = OrderedDict(table=OrderedDict(),
-                                cols=OrderedDict())
+        # Metadata, consisting of table-level meta and column-level meta.  The
+        # latter could include information about column type, description,
+        # formatting, etc, depending on the table meta format.
+        self.meta = OrderedDict(table=OrderedDict(), cols=OrderedDict())
 
     def read(self, table):
         """Read the ``table`` and return the results in a format determined by
         the ``outputter`` attribute.
 
         The ``table`` parameter is any string or object that can be processed
-        by the instance ``inputter``.  For the base Inputter class ``table`` can be
-        one of:
+        by the instance ``inputter``.  For the base Inputter class ``table``
+        can be one of:
 
         * File name
         * File-like object
-        * String (newline separated) with all header and data lines (must have at least 2 lines)
+        * String (newline separated) with all header and data lines (must have
+          at least 2 lines)
         * List of strings
 
         :param table: table input
         :returns: output table
+
         """
         # If ``table`` is a file then store the name in the ``data``
         # attribute. The ``table`` is a "file" if it is a string
@@ -858,7 +893,8 @@ class BaseReader(object):
         # Set self.data.data_lines to a slice of lines contain the data rows
         self.data.get_data_lines(self.lines)
 
-        # Extract table meta values (e.g. keywords, comments, etc).  Updates self.meta.
+        # Extract table meta values (e.g. keywords, comments, etc).
+        # Updates self.meta.
         self.header.update_meta(self.lines, self.meta)
 
         # Get the table column definitions
@@ -901,19 +937,22 @@ class BaseReader(object):
     def inconsistent_handler(self, str_vals, ncols):
         """Adjust or skip data entries if a row is inconsistent with the header.
 
-        The default implementation does no adjustment, and hence will always trigger
-        an exception in read() any time the number of data entries does not match
-        the header.
+        The default implementation does no adjustment, and hence will always
+        trigger an exception in read() any time the number of data entries does
+        not match the header.
 
-        Note that this will *not* be called if the row already matches the header.
+        Note that this will *not* be called if the row already matches the
+        header.
 
-        :param str_vals: A list of value strings from the current row of the table.
+        :param str_vals: A list of value strings from the current row of the
+            table.
         :param ncols: The expected number of entries from the table header.
         :returns:
-            list of strings to be parsed into data entries in the output table. If
-            the length of this list does not match ``ncols``, an exception will be
-            raised in read().  Can also be None, in which case the row will be
-            skipped.
+            list of strings to be parsed into data entries in the output table.
+            If the length of this list does not match ``ncols``, an exception
+            will be raised in read().  Can also be None, in which case the row
+            will be skipped.
+
         """
         # an empty list will always trigger an InconsistentTableError in read()
         return str_vals
@@ -922,7 +961,8 @@ class BaseReader(object):
     def comment_lines(self):
         """Return lines in the table that match header.comment regexp"""
         if not hasattr(self, 'lines'):
-            raise ValueError('Table must be read prior to accessing the header_comment_lines')
+            raise ValueError('Table must be read prior to accessing the '
+                             'header_comment_lines')
         if self.header.comment:
             re_comment = re.compile(self.header.comment)
             comment_lines = [x for x in self.lines if re_comment.match(x)]
@@ -990,7 +1030,9 @@ class ContinuationLinesInputter(BaseInputter):
 
 class WhitespaceSplitter(DefaultSplitter):
     def process_line(self, line):
-        """Replace tab with space within ``line`` while respecting quoted substrings"""
+        """Replace tab with space within ``line`` while respecting quoted
+        substrings.
+        """
         newline = []
         in_quote = False
         lastchar = None
@@ -1100,9 +1142,11 @@ extra_writer_pars = ('delimiter', 'comment', 'quotechar', 'formats',
 def _get_writer(Writer, **kwargs):
     """Initialize a table writer allowing for common customizations. This
     routine is for internal (package) use only and is useful because it depends
-    only on the "core" module. """
+    only on the "core" module.
+    """
 
-    writer_kwargs = dict([k, v] for k, v in kwargs.items() if k not in extra_writer_pars)
+    writer_kwargs = dict([k, v] for k, v in kwargs.items()
+                         if k not in extra_writer_pars)
     writer = Writer(**writer_kwargs)
 
     if 'delimiter' in kwargs:
