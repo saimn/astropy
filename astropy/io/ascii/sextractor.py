@@ -11,7 +11,6 @@ from __future__ import absolute_import, division, print_function
 
 import re
 
-from ...extern import six
 from . import core
 
 
@@ -51,13 +50,6 @@ class SExtractor(core.BaseReader):
         self.data.start_line = 0
         self.data.comment = r'\s*#'  # Comments embedded in the data start with #
 
-    def read(self, table):
-        output = core.BaseReader.read(self, table)
-        self.table = output
-        self.cols = self.header.cols
-
-        return self.table
-
     def write(self, table=None):
         raise NotImplementedError
 
@@ -86,7 +78,7 @@ class SExtractorHeader(core.BaseHeader):
                                  (?P<colnumber> [0-9]+)\s+   # number of the column in table
                                  (?P<colname> \w+)           # name of the column
                                  (?:\s+(?P<coldescr> \w [^\[]*\w))? # column description, match non-[
-                                 (?:\s+\[(?P<colunit>.+)\])?.*   # match units in brackets 
+                                 (?:\s+\[(?P<colunit>.+)\])?.*   # match units in brackets
                                  """, re.VERBOSE)
         for line in lines:
             if not line.startswith('#'):
