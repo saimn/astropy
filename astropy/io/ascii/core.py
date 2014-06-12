@@ -1012,23 +1012,25 @@ extra_reader_pars = ('Reader', 'Inputter', 'Outputter',
 
 
 def _get_reader(Reader, Inputter=None, Outputter=None, **kwargs):
-    """Initialize a table reader allowing for common customizations.  See ui.get_reader()
-    for param docs.  This routine is for internal (package) use only and is useful
-    because it depends only on the "core" module.
-    """
+    """Initialize a table reader allowing for common customizations.
 
-    reader_kwargs = dict([k, v] for k, v in kwargs.items() if k not in extra_reader_pars)
+    See ui.get_reader() for param docs.  This routine is for internal (package)
+    use only and is useful because it depends only on the "core" module.
+
+    """
+    reader_kwargs = dict([k, v] for k, v in kwargs.items()
+                         if k not in extra_reader_pars)
     reader = Reader(**reader_kwargs)
 
     if Inputter is not None:
         reader.inputter = Inputter()
-    reader.outputter = TableOutputter()
 
     if Outputter is not None:
         reader.outputter = Outputter()
 
-    # Issue #855 suggested to set data_start to header_start + default_header_length
-    # Thus, we need to retrieve this from the class definition before resetting these numbers.
+    # Issue #855 suggested to set data_start to header_start
+    # + default_header_length. Thus, we need to retrieve this from the class
+    # definition before resetting these numbers.
     try:
         default_header_length = reader.data.start_line - reader.header.start_line
     except TypeError:  # Start line could be None or an instancemethod
