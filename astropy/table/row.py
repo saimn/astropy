@@ -71,7 +71,10 @@ class Row(object):
         if dtype is not None:
             raise ValueError('Datatype coercion is not allowed')
 
-        return np.asarray(self.as_void())
+        if self._table.masked:
+            return np.ma.asarray(self.as_void())
+        else:
+            return np.asarray(self.as_void())
 
     def __len__(self):
         return len(self._table.columns)
