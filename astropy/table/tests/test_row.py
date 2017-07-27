@@ -181,12 +181,15 @@ class TestRow():
 
         # Make sure it works for a table that has masked elements
         if table.masked:
+            import pdb
+            pdb.set_trace()
             table['a'].mask = True
 
             # row_void is not a view, need to re-make
             assert row_void['a'] == 1
             row_void = row.as_void()  # but row is a view
-            assert row['a'] is np.ma.masked
+            assert row_void['a'] is np.ma.masked
+            assert np.array(row)['a'] is np.ma.masked
 
     def test_row_and_as_void_with_objects(self, table_types):
         """Test the deprecated data property and as_void() method"""
