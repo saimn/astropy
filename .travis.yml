@@ -135,9 +135,9 @@ matrix:
         - os: linux
           env: SETUP_CMD='test --coverage --remote-data=astropy -a "--mpl"'
                CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
-               PIP_DEPENDENCIES="cpp-coveralls objgraph jplephem pytest-mpl bintrees $ASDF_GIT"
+               PIP_DEPENDENCIES="codecov objgraph jplephem pytest-mpl bintrees $ASDF_GIT"
                LC_CTYPE=C.ascii LC_ALL=C
-               CFLAGS='-ftest-coverage -fprofile-arcs -fno-inline-functions -O0'
+               CFLAGS='--coverage -fno-inline-functions -O0'
                MATPLOTLIB_VERSION=2.0
                EVENT_TYPE='push pull_request cron'
                CONDA_VERSION=4.3.21
@@ -183,7 +183,7 @@ script:
 after_success:
     - if [[ $SETUP_CMD == *--coverage* ]]; then
         if [ "$TRAVIS_REPO_SLUG" = "astropy/astropy" -o "$TRAVIS_PULL_REQUEST_SLUG" = "astropy/astropy" ]; then
-          cpp-coveralls -E ".*convolution.*" -E ".*_erfa.*" -E ".*\.l" -E ".*\.y" -E ".*flexed.*" -E ".*cextern.*" -E ".*_np_utils.*" -E ".*cparser.*" -E ".*cython_impl.*" --dump c-coveralls.json;
-          coveralls --merge=c-coveralls.json --rcfile='astropy/tests/coveragerc';
+          gcov build/*/astropy/**/*.gcno;
+          codecov;
         fi;
       fi
