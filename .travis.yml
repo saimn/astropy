@@ -183,5 +183,5 @@ script:
 after_success:
     - pwd
     - if [[ $SETUP_CMD == *--coverage* ]]; then
-          codecov --gcov-glob c"*extern*";
+          codecov --gcov-glob "*cextern*";
       fi
