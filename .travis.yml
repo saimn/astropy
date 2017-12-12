@@ -181,7 +181,7 @@ script:
     - $MAIN_CMD $SETUP_CMD
 
 after_success:
+    - pwd
     - if [[ $SETUP_CMD == *--coverage* ]]; then
-          gcov build/*/astropy/**/*.gcno;
-          codecov;
+          codecov --gcov-glob cextern;
       fi
