@@ -473,9 +473,18 @@ def table_to_hdu(table, character_as_bytes=False):
     if table.masked:
         # float column's default mask value needs to be Nan
         for column in table.columns.values():
-            fill_value = column.get_fill_value()
-            if column.dtype.kind == 'f' and np.allclose(fill_value, 1e20):
-                column.set_fill_value(np.nan)
+            if column.dtype.kind == 'f':
+                # FIXME: shouldn't we also use NaN for float ?
+                fill_value = column.get_fill_value()
+                if np.allclose(fill_value, 1e20):
+                    column.set_fill_value(np.nan)
+            elif column.dtype.kind in 'iu':
+                if column.fill_value in column.compressed():
+                    warnings.warn('add warning here!', AstropyUserWarning)
+            elif column.dtype.kind == 'u':
+                column.set_fill_value('')
+            else:
+                pass
 
         # TODO: it might be better to construct the FITS table directly from
         # the Table columns, rather than go via a structured array.
