@@ -14,11 +14,10 @@ from ...time import Time
 from ...utils.exceptions import AstropyUserWarning
 from ...utils.data_info import MixinInfo, serialize_context_as
 from . import HDUList, TableHDU, BinTableHDU, GroupsHDU
-from .column import KEYWORD_NAMES, ASCII_DEFAULT_WIDTHS, _fortran_to_python_format
+from .column import KEYWORD_NAMES, _fortran_to_python_format
 from .convenience import table_to_hdu
 from .hdu.hdulist import fitsopen as fits_open
 from .util import first
-from .verify import VerifyError, VerifyWarning
 
 
 # FITS file signature as per RFC 4047
@@ -114,7 +113,7 @@ def _decode_mixins(tbl):
 
 
 def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
-                    character_as_bytes=True):
+                    character_as_bytes=True, native_fits_header=False):
     """
     Read a Table object from an FITS file
 
@@ -197,7 +196,8 @@ def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
 
         try:
             return read_table_fits(hdulist, hdu=hdu,
-                                   astropy_native=astropy_native)
+                                   astropy_native=astropy_native,
+                                   native_fits_header=native_fits_header)
         finally:
             hdulist.close()
 
@@ -244,32 +244,35 @@ def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
         from .fitstime import fits_to_time
         hdr = fits_to_time(hdr, t)
 
-    for key, value, comment in hdr.cards:
+    if native_fits_header:
+        t.meta = hdr
+    else:
+        for key, value, comment in hdr.cards:
 
-        if key in ['COMMENT', 'HISTORY']:
-            # Convert to io.ascii format
-            if key == 'COMMENT':
-                key = 'comments'
+            if key in ['COMMENT', 'HISTORY']:
+                # Convert to io.ascii format
+                if key == 'COMMENT':
+                    key = 'comments'
 
-            if key in t.meta:
-                t.meta[key].append(value)
+                if key in t.meta:
+                    t.meta[key].append(value)
+                else:
+                    t.meta[key] = [value]
+
+            elif key in t.meta:  # key is duplicate
+
+                if isinstance(t.meta[key], list):
+                    t.meta[key].append(value)
+                else:
+                    t.meta[key] = [t.meta[key], value]
+
+            elif is_column_keyword(key) or key in REMOVE_KEYWORDS:
+
+                pass
+
             else:
-                t.meta[key] = [value]
 
-        elif key in t.meta:  # key is duplicate
-
-            if isinstance(t.meta[key], list):
-                t.meta[key].append(value)
-            else:
-                t.meta[key] = [t.meta[key], value]
-
-        elif is_column_keyword(key) or key in REMOVE_KEYWORDS:
-
-            pass
-
-        else:
-
-            t.meta[key] = value
+                t.meta[key] = value
 
     # TODO: implement masking
 

@@ -447,7 +447,10 @@ def table_to_hdu(table, character_as_bytes=False):
     from .column import python_to_tdisp
 
     # Header to store Time related metadata
-    hdr = None
+    if isinstance(table.meta, Header):
+        hdr = table.meta.copy()
+    else:
+        hdr = None
 
     # Not all tables with mixin columns are supported
     if table.has_mixin_columns:
@@ -463,11 +466,11 @@ def table_to_hdu(table, character_as_bytes=False):
         if unsupported_cols:
             unsupported_names = [col.info.name for col in unsupported_cols]
             raise ValueError('cannot write table with mixin column(s) {0}'
-                         .format(unsupported_names))
+                             .format(unsupported_names))
 
         time_cols = table.columns.isinstance(Time)
         if time_cols:
-            table, hdr = time_to_fits(table)
+            table, hdr = time_to_fits(table, hdr=hdr)
 
     # Create a new HDU object
     if table.masked:
@@ -479,7 +482,9 @@ def table_to_hdu(table, character_as_bytes=False):
 
         # TODO: it might be better to construct the FITS table directly from
         # the Table columns, rather than go via a structured array.
-        table_hdu = BinTableHDU.from_columns(np.array(table.filled()), header=hdr, character_as_bytes=True)
+        table_hdu = BinTableHDU.from_columns(np.array(table.filled()),
+                                             header=hdr,
+                                             character_as_bytes=True)
         for col in table_hdu.columns:
             # Binary FITS tables support TNULL *only* for integer data columns
             # TODO: Determine a schema for handling non-integer masked columns
@@ -496,7 +501,9 @@ def table_to_hdu(table, character_as_bytes=False):
 
             col.null = fill_value.astype(table[col.name].dtype)
     else:
-        table_hdu = BinTableHDU.from_columns(np.array(table.filled()), header=hdr, character_as_bytes=character_as_bytes)
+        table_hdu = BinTableHDU.from_columns(np.array(table.filled()),
+                                             header=hdr,
+                                             character_as_bytes=character_as_bytes)
 
     # Set units and format display for output HDU
     for col in table_hdu.columns:
@@ -538,33 +545,34 @@ def table_to_hdu(table, character_as_bytes=False):
         for attr in 'coord_type', 'coord_unit', 'time_ref_pos':
             setattr(col, attr, col_info.get(attr, None))
 
-    for key, value in table.meta.items():
-        if is_column_keyword(key.upper()) or key.upper() in REMOVE_KEYWORDS:
-            warnings.warn(
-                "Meta-data keyword {0} will be ignored since it conflicts "
-                "with a FITS reserved keyword".format(key), AstropyUserWarning)
+    if not isinstance(table.meta, Header):
+        for key, value in table.meta.items():
+            if is_column_keyword(key.upper()) or key.upper() in REMOVE_KEYWORDS:
+                warnings.warn(
+                    "Meta-data keyword {0} will be ignored since it conflicts "
+                    "with a FITS reserved keyword".format(key), AstropyUserWarning)
 
-        # Convert to FITS format
-        if key == 'comments':
-            key = 'comment'
+            # Convert to FITS format
+            if key == 'comments':
+                key = 'comment'
 
-        if isinstance(value, list):
-            for item in value:
+            if isinstance(value, list):
+                for item in value:
+                    try:
+                        table_hdu.header.append((key, item))
+                    except ValueError:
+                        warnings.warn(
+                            "Attribute `{0}` of type {1} cannot be added to "
+                            "FITS Header - skipping".format(key, type(value)),
+                            AstropyUserWarning)
+            else:
                 try:
-                    table_hdu.header.append((key, item))
+                    table_hdu.header[key] = value
                 except ValueError:
                     warnings.warn(
-                        "Attribute `{0}` of type {1} cannot be added to "
-                        "FITS Header - skipping".format(key, type(value)),
+                        "Attribute `{0}` of type {1} cannot be added to FITS "
+                        "Header - skipping".format(key, type(value)),
                         AstropyUserWarning)
-        else:
-            try:
-                table_hdu.header[key] = value
-            except ValueError:
-                warnings.warn(
-                    "Attribute `{0}` of type {1} cannot be added to FITS "
-                    "Header - skipping".format(key, type(value)),
-                    AstropyUserWarning)
     return table_hdu
 
 

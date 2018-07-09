@@ -474,7 +474,7 @@ def fits_to_time(hdr, table):
     return hcopy
 
 
-def time_to_fits(table):
+def time_to_fits(table, hdr=None):
     """
     Replace Time columns in a Table with non-mixin columns containing
     each element as a vector of two doubles (jd1, jd2) and return a FITS
@@ -499,8 +499,11 @@ def time_to_fits(table):
     newtable = table.copy(copy_data=False)
 
     # Global time coordinate frame keywords
-    hdr = Header([Card(keyword=key, value=val[0], comment=val[1])
-                  for key, val in GLOBAL_TIME_INFO.items()])
+    if hdr is None:
+        hdr = Header()
+
+    for key, val in GLOBAL_TIME_INFO.items():
+        hdr[key] = val
 
     # Store coordinate column-specific metadata
     newtable.meta['__coordinate_columns__'] = defaultdict(OrderedDict)
@@ -556,9 +559,9 @@ def time_to_fits(table):
             if location is None:
                 # Set global geocentric location
                 location = col.location
-                hdr.extend([Card(keyword='OBSGEO-{}'.format(dim.upper()),
-                                 value=getattr(location, dim).to_value(u.m))
-                            for dim in ('x', 'y', 'z')])
+                for dim in ('x', 'y', 'z'):
+                    key = 'OBSGEO-{}'.format(dim.upper())
+                    hdr[key] = getattr(location, dim).to_value(u.m)
             elif location != col.location:
                 raise ValueError('Multiple Time Columns with different geocentric '
                                  'observatory locations ({}, {}) encountered.'
