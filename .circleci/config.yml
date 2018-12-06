@@ -9,9 +9,7 @@ apt-run: &apt-install
 pip-run: &pip-install
   name: Install Python dependencies
   command: |
-    python3 -m venv venv
-    . venv/bin/activate
-    pip install -q -r pip-requirements-doc
+    sudo python3 -m pip install tox tox-venv
 
 jobs:
   egg-info-37:
@@ -105,7 +103,7 @@ jobs:
       - run: *pip-install
       - run:
           name: Build Docs
-          command: venv/bin/python setup.py build_docs -w
+          command: tox -e docs
           environment:
             LC_CTYPE: C
             LC_ALL: C
