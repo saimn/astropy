@@ -1,8 +1,10 @@
 -r pip-requirements-doc
 sortedcontainers
 bleach
+#bottleneck
 
 # below here are used only for tests
+asdf>=2.3
 pytest-astropy
 coverage
 skyfield
