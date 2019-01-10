@@ -122,7 +122,8 @@ def test_moffat_fwhm():
     kwargs = {'gamma': 10, 'alpha': 0.5}
     m1 = models.Moffat1D(**kwargs)
     m2 = models.Moffat2D(**kwargs)
-    assert_allclose([m1.fwhm, m2.fwhm], ans)
+    m3 = models.EllipticalMoffat2D(x_gamma=10, y_gamma=10, alpha=0.5)
+    assert_allclose([m1.fwhm, m2.fwhm, m3.x_fwhm, m3.y_fwhm], ans)
 
 
 def test_RedshiftScaleFactor():

@@ -2378,6 +2378,93 @@ class Moffat2D(Fittable2DModel):
                             ('amplitude', outputs_unit['z'])])
 
 
+class EllipticalMoffat2D(Fittable2DModel):
+    """
+    Two dimensional Moffat model.
+
+    Parameters
+    ----------
+    amplitude : float
+        Amplitude of the model.
+    x_0 : float
+        x position of the maximum of the Moffat model.
+    y_0 : float
+        y position of the maximum of the Moffat model.
+    x_gamma : float
+        Core width of the Moffat model in x.
+    y_gamma : float
+        Core width of the Moffat model in y.
+    alpha : float
+        Power index of the Moffat model.
+    theta : float, optional
+        Rotation angle in radians.
+
+    See Also
+    --------
+    Moffat2D
+
+    """
+
+    fit_deriv = None
+
+    amplitude = Parameter(default=1)
+    x_0 = Parameter(default=0)
+    y_0 = Parameter(default=0)
+    x_gamma = Parameter(default=1)
+    y_gamma = Parameter(default=1)
+    alpha = Parameter(default=1)
+    theta = Parameter(default=0)
+
+    @property
+    def x_fwhm(self):
+        """Moffat full width at half maximum in x."""
+        return 2.0 * self.x_gamma * np.sqrt(2.0 ** (1.0 / self.alpha) - 1.0)
+
+    @property
+    def y_fwhm(self):
+        """Moffat full width at half maximum in y."""
+        return 2.0 * self.y_gamma * np.sqrt(2.0 ** (1.0 / self.alpha) - 1.0)
+
+    @staticmethod
+    def evaluate(x, y, amplitude, x_0, y_0, x_gamma, y_gamma, alpha, theta):
+        """Two dimensional Moffat model function."""
+
+        cost2 = np.cos(theta) ** 2
+        sint2 = np.sin(theta) ** 2
+        sin2t = np.sin(2. * theta)
+        xstd2 = x_gamma ** 2
+        ystd2 = y_gamma ** 2
+        xdiff = x - x_0
+        ydiff = y - y_0
+
+        a = ((cost2 / xstd2) + (sint2 / ystd2))
+        b = ((sin2t / xstd2) - (sin2t / ystd2))
+        c = ((sint2 / xstd2) + (cost2 / ystd2))
+
+        rr_gg = (a * xdiff ** 2) + (b * xdiff * ydiff) + (c * ydiff ** 2)
+        return amplitude * (1 + rr_gg) ** (-alpha)
+
+    @property
+    def input_units(self):
+        if self.x_0.unit is None:
+            return None
+        else:
+            return {'x': self.x_0.unit,
+                    'y': self.y_0.unit}
+
+    def _parameter_units_for_data_units(self, inputs_unit, outputs_unit):
+        # Note that here we need to make sure that x and y are in the same
+        # units otherwise this can lead to issues since rotation is not well
+        # defined.
+        if inputs_unit['x'] != inputs_unit['y']:
+            raise UnitsError("Units of 'x' and 'y' inputs should match")
+        return OrderedDict([('x_0', inputs_unit['x']),
+                            ('y_0', inputs_unit['x']),
+                            ('x_gamma', inputs_unit['x']),
+                            ('y_gamma', inputs_unit['x']),
+                            ('amplitude', outputs_unit['z'])])
+
+
 class Sersic2D(Fittable2DModel):
     r"""
     Two dimensional Sersic surface brightness profile.
