@@ -128,7 +128,8 @@ def _decode_mixins(tbl):
 
 
 def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
-                    character_as_bytes=True):
+                    character_as_bytes=True, checksum=False,
+                    ignore_missing_end=False):
     """
     Read a Table object from an FITS file.
 
@@ -166,6 +167,17 @@ def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
         ``U``) internally, you should set this to `False`, but note that this
         will use more memory. If set to `False`, string columns will not be
         memory-mapped even if ``memmap`` is `True`.
+    ignore_missing_end : bool, optional
+        Do not issue an exception when opening a file that is missing an
+        ``END`` card in the last header. Default is `False`.
+    checksum : bool, str, optional
+        If `True`, verifies that both ``DATASUM`` and ``CHECKSUM`` card values
+        (when present in the HDU header) match the header and data of all HDU's
+        in the file.  Updates to a file that already has a checksum will
+        preserve and update the existing checksums unless this argument is
+        given a value of 'remove', in which case the CHECKSUM and DATASUM
+        values are not checked, and are removed when saving changes to the
+        file. Default is `False`.
 
     """
 
@@ -223,7 +235,8 @@ def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
     else:
 
         hdulist = fits_open(input, character_as_bytes=character_as_bytes,
-                            memmap=memmap)
+                            memmap=memmap, checksum=checksum,
+                            ignore_missing_end=ignore_missing_end)
 
         try:
             return read_table_fits(hdulist, hdu=hdu,
