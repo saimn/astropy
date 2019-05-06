@@ -130,14 +130,7 @@ def _decode_mixins(tbl):
 def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
                     character_as_bytes=True):
     """
-    Read a Table object from an FITS file
-
-    If the ``astropy_native`` argument is ``True``, then input FITS columns
-    which are representations of an astropy core object will be converted to
-    that class and stored in the ``Table`` as "mixin columns".  Currently this
-    is limited to FITS columns which adhere to the FITS Time standard, in which
-    case they will be converted to a `~astropy.time.Time` column in the output
-    table.
+    Read a Table object from an FITS file.
 
     Parameters
     ----------
@@ -145,15 +138,20 @@ def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
         If a string, the filename to read the table from. If a file object, or
         a compatible HDU object, the object to extract the table from. The
         following `astropy.io.fits` HDU objects can be used as input:
-        - :class:`~astropy.io.fits.hdu.table.TableHDU`
-        - :class:`~astropy.io.fits.hdu.table.BinTableHDU`
-        - :class:`~astropy.io.fits.hdu.table.GroupsHDU`
-        - :class:`~astropy.io.fits.hdu.hdulist.HDUList`
+        - `~astropy.io.fits.TableHDU`
+        - `~astropy.io.fits.BinTableHDU`
+        - `~astropy.io.fits.GroupsHDU`
+        - `~astropy.io.fits.HDUList`
     hdu : int or str, optional
-        The HDU to read the table from.
+        The HDU index or name to read the table from.
     astropy_native : bool, optional
         Read in FITS columns as native astropy objects where possible instead
         of standard Table Column objects. Default is False.
+        If ``True``, then input FITS columns which are representations of an
+        astropy core object will be converted to that class and stored in the
+        ``Table`` as "mixin columns".  Currently this is limited to FITS
+        columns which adhere to the FITS Time standard, in which case they will
+        be converted to a `~astropy.time.Time` column in the output table.
     memmap : bool, optional
         Whether to use memory mapping, which accesses data on disk as needed. If
         you are only accessing part of the data, this is often more efficient.
@@ -168,6 +166,7 @@ def read_table_fits(input, hdu=None, astropy_native=False, memmap=False,
         ``U``) internally, you should set this to `False`, but note that this
         will use more memory. If set to `False`, string columns will not be
         memory-mapped even if ``memmap`` is `True`.
+
     """
 
     if isinstance(input, HDUList):
