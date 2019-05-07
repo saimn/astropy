@@ -11,6 +11,7 @@ import urllib.error
 
 import pytest
 
+from astropy.config.paths import set_temp_cache
 from astropy.utils.data import (_get_download_cache_locs, CacheMissingWarning,
                                 get_pkg_data_filename, get_readable_fileobj, conf)
 
@@ -111,36 +112,37 @@ def test_download_noprogress():
 
 
 @pytest.mark.remote_data(source='astropy')
-def test_download_cache():
+def test_download_cache(tmpdir):
 
     from astropy.utils.data import download_file, clear_download_cache
 
-    download_dir = _get_download_cache_locs()[0]
+    with set_temp_cache(tmpdir):
+        download_dir = _get_download_cache_locs()[0]
 
-    # Download the test URL and make sure it exists, then clear just that
-    # URL and make sure it got deleted.
-    fnout = download_file(TESTURL, cache=True)
-    assert os.path.isdir(download_dir)
-    assert os.path.isfile(fnout)
-    clear_download_cache(TESTURL)
-    assert not os.path.exists(fnout)
+        # Download the test URL and make sure it exists, then clear just that
+        # URL and make sure it got deleted.
+        fnout = download_file(TESTURL, cache=True)
+        assert os.path.isdir(download_dir)
+        assert os.path.isfile(fnout)
+        clear_download_cache(TESTURL)
+        assert not os.path.exists(fnout)
 
-    # Test issues raised in #4427 with clear_download_cache() without a URL,
-    # followed by subsequent download.
-    fnout = download_file(TESTURL, cache=True)
-    assert os.path.isfile(fnout)
-    clear_download_cache()
-    assert not os.path.exists(fnout)
-    assert not os.path.exists(download_dir)
-    fnout = download_file(TESTURL, cache=True)
-    assert os.path.isfile(fnout)
+        # Test issues raised in #4427 with clear_download_cache() without a
+        # URL, followed by subsequent download.
+        fnout = download_file(TESTURL, cache=True)
+        assert os.path.isfile(fnout)
+        clear_download_cache()
+        assert not os.path.exists(fnout)
+        assert not os.path.exists(download_dir)
+        fnout = download_file(TESTURL, cache=True)
+        assert os.path.isfile(fnout)
 
-    # Clearing download cache succeeds even if the URL does not exist.
-    clear_download_cache('http://this_was_never_downloaded_before.com')
+        # Clearing download cache succeeds even if the URL does not exist.
+        clear_download_cache('http://this_was_never_downloaded_before.com')
 
-    # Make sure lockdir was released
-    lockdir = os.path.join(download_dir, 'lock')
-    assert not os.path.isdir(lockdir), 'Cache dir lock was not released!'
+        # Make sure lockdir was released
+        lockdir = os.path.join(download_dir, 'lock')
+        assert not os.path.isdir(lockdir), 'Cache dir lock was not released!'
 
 
 @pytest.mark.remote_data(source='astropy')
