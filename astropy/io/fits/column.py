@@ -60,6 +60,19 @@ FORMATORDER = ['L', 'B', 'I', 'J', 'K', 'D', 'M', 'A']
 # Convert single precision floating point/complex to double precision.
 FITSUPCONVERTERS = {'E': 'D', 'C': 'M'}
 
+BZEROS_BY_ITEMSIZE = {
+    2: np.uint16(2**15),
+    4: np.uint32(2**31),
+    8: np.uint64(2**63)
+}
+
+BZEROS_BY_FORMAT = {
+    'I': np.uint16(2**15),
+    'J': np.uint32(2**31),
+    'K': np.uint64(2**63)
+}
+
+
 # mapping from ASCII table TFORM data type to numpy data type
 # A: Character
 # I: Integer (32-bit)
@@ -962,6 +975,13 @@ class Column(NotifierMixin):
         invalid = {}
 
         format, recformat = cls._determine_formats(format, start, dim, ascii)
+
+        if bzero is not None and bzero != '':
+            if np.dtype(recformat).kind == 'i':
+                if bzero in BZEROS_BY_ITEMSIZE.values():
+                    recformat = recformat.replace('i', 'u')
+                    format.recformat = recformat
+
         valid.update(format=format, recformat=recformat)
 
         # Currently we don't have any validation for name, unit, bscale, or
@@ -1294,12 +1314,12 @@ class Column(NotifierMixin):
                 # int arrays; blatantly tacked in here for now--we need columns
                 # to have explicit knowledge of whether they treated as
                 # pseudo-unsigned
-                bzeros = {2: np.uint16(2**15), 4: np.uint32(2**31),
-                          8: np.uint64(2**63)}
-                if (array.dtype.kind == 'u' and
-                        array.dtype.itemsize in bzeros and
-                        self.bscale in (1, None, '') and
-                        self.bzero == bzeros[array.dtype.itemsize]):
+                if (
+                    array.dtype.kind == 'u' and
+                    array.dtype.itemsize in BZEROS_BY_ITEMSIZE and
+                    self.bscale in (1, None, '') and
+                    self.bzero == BZEROS_BY_ITEMSIZE[array.dtype.itemsize]
+                ):
                     # Basically the array is uint, has scale == 1.0, and the
                     # bzero is the appropriate value for a pseudo-unsigned
                     # integer of the input dtype, then go ahead and assume that
@@ -1424,12 +1444,7 @@ class ColDefs(NotifierMixin):
             # Check for unsigned ints.
             bzero = None
             if ftype.base.kind == 'u':
-                if 'I' in format:
-                    bzero = np.uint16(2**15)
-                elif 'J' in format:
-                    bzero = np.uint32(2**31)
-                elif 'K' in format:
-                    bzero = np.uint64(2**63)
+                bzero = BZEROS_BY_FORMAT.get(format)
 
             c = Column(name=cname, format=format,
                        array=array.view(np.ndarray)[cname], bzero=bzero,
