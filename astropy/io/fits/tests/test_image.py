@@ -922,7 +922,7 @@ class TestImageFunctions(FitsTestCase):
         self.copy_file('scale.fits')
         mtime = os.stat(self.temp('scale.fits')).st_mtime
 
-        time.sleep(1)
+        time.sleep(0.1)
 
         fits.open(self.temp('scale.fits'), mode='update').close()
 
@@ -932,7 +932,7 @@ class TestImageFunctions(FitsTestCase):
 
         # Insert a slight delay to ensure the mtime does change when the file
         # is changed
-        time.sleep(1)
+        time.sleep(0.1)
 
         hdul = fits.open(self.temp('scale.fits'), 'update')
         orig_data = hdul[0].data
@@ -1248,7 +1248,7 @@ class TestCompressedImage(FitsTestCase):
         self.copy_file('comp.fits')
         mtime = os.stat(self.temp('comp.fits')).st_mtime
 
-        time.sleep(1)
+        time.sleep(0.1)
 
         fits.open(self.temp('comp.fits'), mode='update').close()
 
@@ -1273,7 +1273,7 @@ class TestCompressedImage(FitsTestCase):
             chdu.writeto(self.temp('scale.fits'))
         mtime = os.stat(self.temp('scale.fits')).st_mtime
 
-        time.sleep(1)
+        time.sleep(0.1)
 
         fits.open(self.temp('scale.fits'), mode='update').close()
 
@@ -1283,7 +1283,7 @@ class TestCompressedImage(FitsTestCase):
 
         # Insert a slight delay to ensure the mtime does change when the file
         # is changed
-        time.sleep(1)
+        time.sleep(0.1)
 
         hdul = fits.open(self.temp('scale.fits'), 'update')
         hdul[1].data

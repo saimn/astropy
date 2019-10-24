@@ -50,7 +50,7 @@ class TestGroupsFunctions(FitsTestCase):
         self.copy_file('random_groups.fits')
         mtime = os.stat(self.temp('random_groups.fits')).st_mtime
 
-        time.sleep(1)
+        time.sleep(0.1)
 
         fits.open(self.temp('random_groups.fits'), mode='update',
                   memmap=False).close()
