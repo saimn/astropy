@@ -29,16 +29,9 @@ class TestFITSDiff_script(FitsTestCase):
         assert e.value.code == 2
 
     def test_nodiff(self):
-        a = np.arange(100).reshape(10, 10)
-        hdu_a = PrimaryHDU(data=a)
-        b = a.copy()
-        hdu_b = PrimaryHDU(data=b)
-        tmp_a = self.temp('testa.fits')
-        tmp_b = self.temp('testb.fits')
-        hdu_a.writeto(tmp_a)
-        hdu_b.writeto(tmp_b)
-        numdiff = fitsdiff.main([tmp_a, tmp_b])
-        assert numdiff == 0
+        self.copy_file('arange.fits')
+        assert fitsdiff.main([self.data('arange.fits'),
+                              self.temp('arange.fits')]) == 0
 
     def test_onediff(self):
         a = np.arange(100).reshape(10, 10)
@@ -205,40 +198,31 @@ No differences found.\n""".format(version, tmp_a, tmp_b)
         assert err == ""
 
     def test_path(self, capsys):
-        os.mkdir(self.temp('sub/'))
-        tmp_b = self.temp('sub/ascii.fits')
+        tmp_b = self.temp('ascii.fits')
+        writeto(tmp_b, np.arange(10))
 
-        tmp_g = self.temp('sub/group.fits')
-        tmp_h = self.data('group.fits')
-        with hdulist.fitsopen(tmp_h) as hdu_b:
-            hdu_b.writeto(tmp_g)
-
-        writeto(tmp_b, np.arange(100).reshape(10, 10))
+        self.copy_file('group.fits')
 
         # one modified file and a directory
         assert fitsdiff.main(["-q", self.data_dir, tmp_b]) == 1
         assert fitsdiff.main(["-q", tmp_b, self.data_dir]) == 1
 
         # two directories
-        tmp_d = self.temp('sub/')
-        assert fitsdiff.main(["-q", self.data_dir, tmp_d]) == 1
-        assert fitsdiff.main(["-q", tmp_d, self.data_dir]) == 1
+        assert fitsdiff.main(["-q", self.data_dir, self.temp_dir]) == 1
+        assert fitsdiff.main(["-q", self.temp_dir, self.data_dir]) == 1
+
         with pytest.warns(UserWarning, match=r"Field 'ORBPARM' has a repeat "
                           r"count of 0 in its format code"):
             assert fitsdiff.main(["-q", self.data_dir, self.data_dir]) == 0
 
         # no match
-        tmp_c = self.data('arange.fits')
-        fitsdiff.main([tmp_c, tmp_d])
+        fitsdiff.main([self.data('arange.fits'), self.temp_dir])
         out, err = capsys.readouterr()
         assert "'arange.fits' has no match in" in err
 
         # globbing
-        with pytest.warns(UserWarning, match=r"Field 'ORBPARM' has a repeat "
-                          r"count of 0 in its format code"):
-            assert fitsdiff.main(["-q", self.data_dir+'/*.fits',
-                                  self.data_dir]) == 0
-        assert fitsdiff.main(["-q", self.data_dir+'/g*.fits', tmp_d]) == 0
+        assert fitsdiff.main(["-q", self.data_dir+'/g*.fits',
+                              self.temp_dir]) == 0
 
         # one file and a directory
         tmp_f = self.data('tb.fits')
