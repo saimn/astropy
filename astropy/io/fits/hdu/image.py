@@ -1015,19 +1015,6 @@ class PrimaryHDU(_ImageBaseHDU):
                 after = 'NAXIS'
             self._header.set('EXTEND', after=after)
 
-    def _verify(self, option='warn'):
-        errs = super()._verify(option=option)
-
-        # Verify location and value of mandatory keywords.
-        # The EXTEND keyword is only mandatory if the HDU has extensions; this
-        # condition is checked by the HDUList object.  However, if we already
-        # have an EXTEND keyword check that its position is correct
-        if 'EXTEND' in self._header:
-            naxis = self._header.get('NAXIS', 0)
-            self.req_cards('EXTEND', naxis + 3, lambda v: isinstance(v, bool),
-                           True, option, errs)
-        return errs
-
 
 class ImageHDU(_ImageBaseHDU, ExtensionHDU):
     """

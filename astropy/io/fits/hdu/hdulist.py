@@ -1217,23 +1217,6 @@ class HDUList(list, _Verify):
                                   fix_text=fix_text, fix=fix)
             errs.append(err)
 
-        if len(self) > 1 and ('EXTEND' not in self[0].header or
-                              self[0].header['EXTEND'] is not True):
-            err_text = ('Primary HDU does not contain an EXTEND keyword '
-                        'equal to T even though there are extension HDUs.')
-            fix_text = 'Fixed by inserting or updating the EXTEND keyword.'
-
-            def fix(header=self[0].header):
-                naxis = header['NAXIS']
-                if naxis == 0:
-                    after = 'NAXIS'
-                else:
-                    after = 'NAXIS' + str(naxis)
-                header.set('EXTEND', value=True, after=after)
-
-            errs.append(self.run_option(option, err_text=err_text,
-                                        fix_text=fix_text, fix=fix))
-
         # each element calls their own verify
         for idx, hdu in enumerate(self):
             if idx > 0 and (not isinstance(hdu, ExtensionHDU)):
