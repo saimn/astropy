@@ -596,11 +596,22 @@ class TestImageFunctions(FitsTestCase):
         hdul.close()
 
     def test_do_not_scale_image_data(self):
-        with fits.open(self.data('scale.fits'), do_not_scale_image_data=True) as hdul:
-            assert hdul[0].data.dtype == np.dtype('>i2')
+        data = fits.getdata(self.data('scale.fits'))
+        assert data.dtype == np.dtype('float32')
+
+        data_unscaled = fits.getdata(self.data('scale.fits'),
+                                     do_not_scale_image_data=True)
+        assert data_unscaled.dtype == np.dtype('>i2')
+
+    def test_raw_data(self):
+        data_unscaled = fits.getdata(self.data('scale.fits'),
+                                     do_not_scale_image_data=True)
+        assert data_unscaled.dtype == np.dtype('>i2')
 
         with fits.open(self.data('scale.fits')) as hdul:
-            assert hdul[0].data.dtype == np.dtype('float32')
+            assert hdul[0].raw_data.dtype == np.dtype('>i2')
+            assert hdul[0].raw_data[0, 0] == data_unscaled[0, 0]
+
 
     def test_append_uint_data(self):
         """Regression test for https://aeon.stsci.edu/ssb/trac/pyfits/ticket/56

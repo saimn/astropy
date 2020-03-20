@@ -306,6 +306,12 @@ class _ImageBaseHDU(_ValidHDU):
         # setting self.__dict__['data']
         return data
 
+    @property
+    def raw_data(self):
+        """Returns the raw (unscaled) data."""
+        code = BITPIX2DTYPE[self._orig_bitpix]
+        return self._get_raw_data(self.shape, code, self._data_offset)
+
     def update_header(self):
         """
         Update the header keywords to agree with the data.
@@ -770,6 +776,11 @@ class _ImageBaseHDU(_ValidHDU):
 
             return data
 
+    def _get_raw_data(self, shape, code, offset):
+        raw_data = super()._get_raw_data(shape, code, offset)
+        raw_data.dtype = raw_data.dtype.newbyteorder('>')
+        return raw_data
+
     def _get_scaled_image_data(self, offset, shape):
         """
         Internal function for reading image data from a file and apply scale
@@ -778,9 +789,7 @@ class _ImageBaseHDU(_ValidHDU):
         """
 
         code = BITPIX2DTYPE[self._orig_bitpix]
-
         raw_data = self._get_raw_data(shape, code, offset)
-        raw_data.dtype = raw_data.dtype.newbyteorder('>')
 
         if self._do_not_scale_image_data or (
                 self._orig_bzero == 0 and self._orig_bscale == 1 and
