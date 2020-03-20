@@ -14,6 +14,7 @@ from . import compressed
 from .base import _BaseHDU, _ValidHDU, _NonstandardHDU, ExtensionHDU
 from .groups import GroupsHDU
 from .image import PrimaryHDU, ImageHDU
+from .verify import PrimaryHDUVerifier
 from astropy.io.fits.file import _File, FILE_MODES
 from astropy.io.fits.header import _pad_length
 from astropy.io.fits.util import (_free_space_check, _get_array_mmap, _is_int,
@@ -170,6 +171,8 @@ class HDUList(list, _Verify):
     HDU list class.  This is the top-level FITS object.  When a FITS
     file is opened, a `HDUList` object is returned.
     """
+
+    _verifiers = [PrimaryHDUVerifier]
 
     def __init__(self, hdus=[], file=None):
         """
@@ -1204,18 +1207,18 @@ class HDUList(list, _Verify):
     def _verify(self, option='warn'):
         errs = _ErrList([], unit='HDU')
 
-        # the first (0th) element must be a primary HDU
-        if len(self) > 0 and (not isinstance(self[0], PrimaryHDU)) and \
-                             (not isinstance(self[0], _NonstandardHDU)):
-            err_text = "HDUList's 0th element is not a primary HDU."
-            fix_text = 'Fixed by inserting one as 0th HDU.'
+        # # the first (0th) element must be a primary HDU
+        # if len(self) > 0 and (not isinstance(self[0], PrimaryHDU)) and \
+        #                      (not isinstance(self[0], _NonstandardHDU)):
+        #     err_text = "HDUList's 0th element is not a primary HDU."
+        #     fix_text = 'Fixed by inserting one as 0th HDU.'
 
-            def fix(self=self):
-                self.insert(0, PrimaryHDU())
+        #     def fix(self=self):
+        #         self.insert(0, PrimaryHDU())
 
-            err = self.run_option(option, err_text=err_text,
-                                  fix_text=fix_text, fix=fix)
-            errs.append(err)
+        #     err = self.run_option(option, err_text=err_text,
+        #                           fix_text=fix_text, fix=fix)
+        #     errs.append(err)
 
         # each element calls their own verify
         for idx, hdu in enumerate(self):

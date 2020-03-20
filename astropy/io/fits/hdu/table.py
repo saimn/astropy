@@ -15,6 +15,7 @@ import numpy as np
 from numpy import char as chararray
 
 from .base import DELAYED, _ValidHDU, ExtensionHDU
+from .verify import XTENSIONMatchTypeHDUVerifier
 # This module may have many dependencies on astropy.io.fits.column, but
 # astropy.io.fits.column has fewer dependencies overall, so it's easier to
 # keep table/column-related utilities in astropy.io.fits.column
@@ -271,6 +272,8 @@ class _TableBaseHDU(ExtensionHDU, _TableLikeHDU):
     This is included primarily as an optimization for compressed image HDUs
     which perform their own heap maintenance.
     """
+
+    _verifiers = [XTENSIONMatchTypeHDUVerifier]
 
     def __init__(self, data=None, header=None, name=None, uint=False, ver=None,
                  character_as_bytes=False):
@@ -533,17 +536,17 @@ class _TableBaseHDU(ExtensionHDU, _TableLikeHDU):
         """
 
         errs = super()._verify(option=option)
-        if not (isinstance(self._header[0], str) and
-                self._header[0].rstrip() == self._extension):
+        # if not (isinstance(self._header[0], str) and
+        #         self._header[0].rstrip() == self._extension):
 
-            err_text = 'The XTENSION keyword must match the HDU type.'
-            fix_text = 'Converted the XTENSION keyword to {}.'.format(self._extension)
+        #     err_text = 'The XTENSION keyword must match the HDU type.'
+        #     fix_text = 'Converted the XTENSION keyword to {}.'.format(self._extension)
 
-            def fix(header=self._header):
-                header[0] = (self._extension, self._ext_comment)
+        #     def fix(header=self._header):
+        #         header[0] = (self._extension, self._ext_comment)
 
-            errs.append(self.run_option(option, err_text=err_text,
-                                        fix_text=fix_text, fix=fix))
+        #     errs.append(self.run_option(option, err_text=err_text,
+        #                                 fix_text=fix_text, fix=fix))
 
         self.req_cards('NAXIS', None, lambda v: (v == 2), 2, option, errs)
         self.req_cards('BITPIX', None, lambda v: (v == 8), 8, option, errs)

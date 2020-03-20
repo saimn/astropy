@@ -5,23 +5,67 @@ import warnings
 
 from astropy.utils import indent
 from astropy.utils.exceptions import AstropyUserWarning
-
-
-class VerifyError(Exception):
-    """
-    Verify exception class.
-    """
-
-
-class VerifyWarning(AstropyUserWarning):
-    """
-    Verify warning class.
-    """
+from .hdu.base import _NonstandardHDU
+from .hdu.image import PrimaryHDU
 
 
 VERIFY_OPTIONS = ['ignore', 'warn', 'exception', 'fix', 'silentfix',
                   'fix+ignore', 'fix+warn', 'fix+exception',
                   'silentfix+ignore', 'silentfix+warn', 'silentfix+exception']
+
+
+class VerifyError(Exception):
+    """Verify exception class."""
+
+
+class VerifyWarning(AstropyUserWarning):
+    """Verify warning class."""
+
+
+class Verifier:
+    def __init__(self, obj):
+        self.obj = obj
+        self._verifications = []
+
+    def fix(self, option):
+        text = self.err_text
+
+        if option in ['warn', 'exception']:
+            fixable = False
+        # fix the value
+        elif not fixable:
+            text = f'Unfixable error: {text}'
+        else:
+            if self._fix:
+                self._fix(self.obj)
+            text += '  ' + self.fix_text
+
+        self._verifications.append((fixable, text))
+
+
+class PrimaryHDUVerifier(Verifier):
+    err_text = "HDUList's 0th element is not a primary HDU."
+    fix_text = 'Fixed by inserting one as 0th HDU.'
+
+    def check(self, obj):
+        return (len(obj) > 0 and
+                (not isinstance(obj[0], PrimaryHDU)) and
+                (not isinstance(obj[0], _NonstandardHDU)))
+
+    def _fix(self, obj):
+        obj.insert(0, PrimaryHDU())
+
+
+class XTENSIONMatchTypeHDUVerifier(Verifier):
+    err_text = 'The XTENSION keyword must match the HDU type.'
+    fix_text = 'Converted the XTENSION keyword to {self._extension}.'
+
+    def check(self, obj):
+        return not (isinstance(obj._header[0], str) and
+                    obj._header[0].rstrip() == obj._extension)
+
+    def _fix(self, obj):
+        obj.header[0] = (obj._extension, obj._ext_comment)
 
 
 class _Verify:
@@ -66,6 +110,13 @@ class _Verify:
         opt = option.lower()
         if opt not in VERIFY_OPTIONS:
             raise ValueError(f'Option {option!r} not recognized.')
+
+        problems = []
+        for verifier_cls in self._verifiers:
+            verifier = verifier_cls(self)
+            res = verifier.check()
+            if res:
+                problems.append(verifier)
 
         if opt == 'ignore':
             return
