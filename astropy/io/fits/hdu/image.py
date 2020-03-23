@@ -23,6 +23,41 @@ except ImportError:
 __all__ = ["Section", "PrimaryHDU", "ImageHDU"]
 
 
+class FitsData(np.ndarray):
+    def __new__(cls, value, bscale=None, bzero=None, dtype=None, copy=True,
+                order=None, subok=False, ndmin=0):
+        arr = np.array(value, dtype=dtype, copy=copy, order=order,
+                       subok=subok, ndmin=ndmin)
+        arr = arr.view(cls)
+        arr.bscale = bscale
+        arr.bzero = bzero
+        return arr
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        converted = []
+        for data in inputs:
+            if isinstance(data, FitsData):
+                arr = data.view(np.ndarray)
+                if data.bscale != 1:
+                    print('bscale:', data.bscale)
+                    np.multiply(arr, data.bscale, arr)
+                    data.bscale = 1
+                if data.bzero != 0:
+                    print('bzero:', data.bzero)
+                    arr += data.bzero
+                    data.bzero = 0
+
+                # if data._blank:
+                #     data.flat[blanks] = np.nan
+                converted.append(arr)
+            else:
+                converted.append(data)
+
+        # Call our superclass's __array_ufunc__
+        result = getattr(ufunc, method)(*converted, **kwargs)
+        return result
+
+
 class _ImageBaseHDU(_ValidHDU):
     """FITS image HDU base class.
 
@@ -237,9 +272,10 @@ class _ImageBaseHDU(_ValidHDU):
         if len(self._axes) < 1:
             return
 
-        data = self._get_scaled_image_data(self._data_offset, self.shape)
+        # data = self._get_scaled_image_data(self._data_offset, self.shape)
+        data = FitsData(self.raw_data, bscale=self._orig_bscale,
+                        bzero=self._orig_bzero, copy=True)
         self._update_header_scale_info(data.dtype)
-
         return data
 
     @data.setter
