@@ -139,6 +139,11 @@ class _ImageBaseHDU(_ValidHDU):
         self._bzero = self._header.get('BZERO', 0)
         self._bscale = self._header.get('BSCALE', 1)
 
+        # These get set again below, but need to be set to sensible
+        # defaults here.
+        self._orig_bzero = self._bzero
+        self._orig_bscale = self._bscale
+
         # Save off other important values from the header needed to interpret
         # the image data
         self._axes = [self._header.get('NAXIS' + str(axis + 1), 0)
@@ -155,11 +160,6 @@ class _ImageBaseHDU(_ValidHDU):
 
         self._orig_bitpix = self._bitpix
         self._orig_blank = self._header.get('BLANK')
-
-        # These get set again below, but need to be set to sensible defaults
-        # here.
-        self._orig_bzero = self._bzero
-        self._orig_bscale = self._bscale
 
         # Set the name attribute if it was provided (if this is an ImageHDU
         # this will result in setting the EXTNAME keyword of the header as
