@@ -965,6 +965,20 @@ def test_fitters_with_weights():
     assert_allclose(pmod.parameters, p2.parameters, atol=10 ** (-2))
 
 
+def test_linear_fitters_with_weights():
+    """Regression test for #7035"""
+    Xin, Yin = np.mgrid[0:21, 0:21]
+    fitter = LinearLSQFitter()
+
+    zsig = np.random.normal(0, 0.01, size=Xin.shape)
+
+    p2 = models.Polynomial2D(3)
+    p2.parameters = np.arange(10)/1.2
+    z = p2(Xin, Yin)
+    pmod = fitter(models.Polynomial2D(3), Xin, Yin, z + zsig, weights=zsig**(-2))
+    assert_allclose(pmod.parameters, p2.parameters, atol=10 ** (-2))
+
+
 @pytest.mark.skipif('not HAS_SCIPY')
 @pytest.mark.filterwarnings('ignore:The fit may be unsuccessful')
 def test_fitters_interface():
