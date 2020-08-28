@@ -382,6 +382,9 @@ class LinearLSQFitter(metaclass=_FitterMeta):
 
         has_fixed = any(model_copy.fixed.values())
 
+        if weights is not None:
+            weights = np.asarray(weights, dtype=float)
+
         if has_fixed:
 
             # The list of fixed params is the complement of those being fitted:
@@ -399,6 +402,10 @@ class LinearLSQFitter(metaclass=_FitterMeta):
         if len(farg) == 2:
             x, y = farg
 
+            if weights is not None and weights.ndim > 1:
+                _, weights = _convert_input(x, weights, n_models=len(model_copy),
+                                            model_set_axis=model_copy.model_set_axis)
+
             # map domain into window
             if hasattr(model_copy, 'domain'):
                 x = self._map_domain_window(model_copy, x)
@@ -413,6 +420,10 @@ class LinearLSQFitter(metaclass=_FitterMeta):
             rhs = y
         else:
             x, y, z = farg
+
+            if weights is not None and weights.ndim > 2:
+                _, _, weights = _convert_input(x, y, weights, n_models=len(model_copy),
+                                               model_set_axis=model_copy.model_set_axis)
 
             # map domain into window
             if hasattr(model_copy, 'x_domain'):
@@ -446,8 +457,17 @@ class LinearLSQFitter(metaclass=_FitterMeta):
                     # but z has a second axis for the model set. NB. This is
                     # ~5-10x faster than using rollaxis.
                     rhs = z.T if model_axis == 0 else z
+
+                if weights is not None:
+                    if weights.ndim > 2:
+                        weights = np.rollaxis(z, model_axis, z.ndim)
+                        weights = weights.reshape(-1, weights.shape[-1])
+                    else:
+                        weights = weights.flatten()
             else:
                 rhs = z.flatten()
+                if weights is not None:
+                    weights = weights.flatten()
 
         # If the derivative is defined along rows (as with non-linear models)
         if model_copy.col_fit_deriv:
@@ -482,14 +502,18 @@ class LinearLSQFitter(metaclass=_FitterMeta):
             rhs = rhs - sum_of_implicit_terms
 
         if weights is not None:
-            weights = np.asarray(weights, dtype=float)
-            if len(x) != len(weights):
+            if len(lhs) != len(weights):
                 raise ValueError("x and weights should have the same length")
+
             if rhs.ndim == 2:
-                lhs *= weights[:, np.newaxis]
-                # Don't modify in-place in case rhs was the original dependent
-                # variable array
-                rhs = rhs * weights[:, np.newaxis]
+                if weights is not None and weights.shape == rhs.shape:
+                    lhs = lhs[..., np.newaxis] * weights[:, np.newaxis]
+                    rhs = rhs * weights
+                else:
+                    lhs *= weights[:, np.newaxis]
+                    # Don't modify in-place in case rhs was the original
+                    # dependent variable array
+                    rhs = rhs * weights[:, np.newaxis]
             else:
                 lhs *= weights[:, np.newaxis]
                 rhs = rhs * weights
@@ -499,7 +523,24 @@ class LinearLSQFitter(metaclass=_FitterMeta):
 
         masked = np.any(np.ma.getmask(rhs))
 
-        if len(model_copy) == 1 or not masked:
+        if weights is not None and weights.ndim > 1 and weights.shape == rhs.shape:
+
+            scl = scl.T
+            lacoef = np.zeros(lhs.shape[-2:], dtype=rhs.dtype)
+
+            for model_lhs, model_rhs, model_lacoef in zip(lhs.T, rhs.T, lacoef.T):
+
+                # Cull masked points on both sides of the matrix equation:
+                good = ~model_rhs.mask if masked else slice(None)
+                model_lhs = model_lhs.T[good]
+                model_rhs = model_rhs[good][..., np.newaxis]
+
+                # Solve for this model:
+                t_coef, resids, rank, sval = np.linalg.lstsq(model_lhs,
+                                                             model_rhs, rcond)
+                model_lacoef[:] = t_coef.T
+
+        elif len(model_copy) == 1 or not masked:
 
             # If we're fitting one or more models over a common set of points,
             # we only have to solve a single matrix equation, which is an order
