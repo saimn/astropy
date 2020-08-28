@@ -1026,6 +1026,8 @@ astropy.modeling
 
 - Fixed a problem with fitting ``Linear1D`` and ``Planar2D`` in model sets. [#10623]
 
+- Fixes for weights with linear fitter. [#10687]
+
 astropy.nddata
 ^^^^^^^^^^^^^^
 
