@@ -403,6 +403,8 @@ class LinearLSQFitter(metaclass=_FitterMeta):
             x, y = farg
 
             if weights is not None and weights.ndim > 1:
+                # If we have separate weights for multiple models we need
+                # to apply the same conversion as for the data.
                 _, weights = _convert_input(x, weights, n_models=len(model_copy),
                                             model_set_axis=model_copy.model_set_axis)
 
@@ -422,6 +424,8 @@ class LinearLSQFitter(metaclass=_FitterMeta):
             x, y, z = farg
 
             if weights is not None and weights.ndim > 2:
+                # If we have separate weights for multiple models we need
+                # to apply the same conversion as for the data.
                 _, _, weights = _convert_input(x, y, weights, n_models=len(model_copy),
                                                model_set_axis=model_copy.model_set_axis)
 
@@ -459,6 +463,7 @@ class LinearLSQFitter(metaclass=_FitterMeta):
                     rhs = z.T if model_axis == 0 else z
 
                 if weights is not None:
+                    # Same for weights
                     if weights.ndim > 2:
                         weights = np.rollaxis(z, model_axis, z.ndim)
                         weights = weights.reshape(-1, weights.shape[-1])
@@ -507,6 +512,8 @@ class LinearLSQFitter(metaclass=_FitterMeta):
 
             if rhs.ndim == 2:
                 if weights is not None and weights.shape == rhs.shape:
+                    # separate weights for multiple models case: broadcast
+                    # lhs to have more dimension (for each model)
                     lhs = lhs[..., np.newaxis] * weights[:, np.newaxis]
                     rhs = rhs * weights
                 else:
@@ -524,6 +531,11 @@ class LinearLSQFitter(metaclass=_FitterMeta):
         masked = np.any(np.ma.getmask(rhs))
 
         if weights is not None and weights.ndim > 1 and weights.shape == rhs.shape:
+
+            # separate weights for multiple models case: Numpy's lstsq
+            # supports multiple dimensions only for rhs, so we need to loop
+            # manually on the models.  This may be fixed in the future with
+            # https://github.com/numpy/numpy/pull/15777
 
             scl = scl.T
             lacoef = np.zeros(lhs.shape[-2:], dtype=rhs.dtype)
