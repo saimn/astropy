@@ -543,7 +543,7 @@ class LinearLSQFitter(metaclass=_FitterMeta):
 
         masked = np.any(np.ma.getmask(rhs))
 
-        if weights is not None and weights.ndim > 1 and weights.shape == rhs.shape:
+        if weights is not None and weights.ndim > 1:
 
             # separate weights for multiple models case: Numpy's lstsq
             # supports multiple dimensions only for rhs, so we need to loop
