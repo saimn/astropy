@@ -61,19 +61,19 @@ it with Figure 1 of `Lupton et al. (2004)`_:
    :align: center
 
    import matplotlib.pyplot as plt
-   from astropy.visualization import make_lupton_rgb
    from astropy.io import fits
    from astropy.utils.data import get_pkg_data_filename
+   from astropy.visualization import make_lupton_rgb
 
    # Read in the three images downloaded from here:
    g_name = get_pkg_data_filename('visualization/reprojected_sdss_g.fits.bz2')
    r_name = get_pkg_data_filename('visualization/reprojected_sdss_r.fits.bz2')
    i_name = get_pkg_data_filename('visualization/reprojected_sdss_i.fits.bz2')
-   g = fits.open(g_name)[0].data
-   r = fits.open(r_name)[0].data
-   i = fits.open(i_name)[0].data
+   g = fits.getdata(g_name)
+   r = fits.getdata(r_name)
+   i = fits.getdata(i_name)
 
-   rgb_default = make_lupton_rgb(i, r, g, filename="ngc6976-default.jpeg")
+   rgb_default = make_lupton_rgb(i, r, g)
    plt.imshow(rgb_default, origin='lower')
 
 The image above was generated with the default parameters. However using a
@@ -86,7 +86,7 @@ of the galaxies show up. Compare with Fig. 1 of `Lupton et al. (2004)`_ or the
    :include-source:
    :align: center
 
-   rgb = make_lupton_rgb(i, r, g, Q=10, stretch=0.5, filename="ngc6976.jpeg")
+   rgb = make_lupton_rgb(i, r, g, Q=10, stretch=0.5)
    plt.imshow(rgb, origin='lower')
 
 
