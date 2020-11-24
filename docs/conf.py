@@ -25,11 +25,10 @@
 # be accessible, and the documentation will not build correctly.
 # See sphinx_astropy.conf for which values are set there.
 
-from datetime import datetime
 import os
 import sys
-
-from pkg_resources import get_distribution
+from datetime import datetime
+from importlib.metadata import version
 
 import astropy
 
@@ -115,7 +114,7 @@ copyright = f'2011–{datetime.utcnow().year}, ' + author
 # built documents.
 
 # The full version, including alpha/beta/rc tags.
-release = get_distribution(project).version
+release = version(project)
 # The short X.Y version.
 version = '.'.join(release.split('.')[:2])
 
