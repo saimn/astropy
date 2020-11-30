@@ -360,6 +360,12 @@ class Card(_Verify):
                     "characters; {!r} contains characters not representable in "
                     "ASCII or non-printable characters.".format(value)
                 )
+            if self._hierarch and len(value) > (self.length - 10):
+                raise ValueError(
+                    f"Value {value!r} is too long for a HIERARCH keyword, as "
+                    "HIERARCH spec is not compatible with the CONTINUE keyword"
+                )
+
         elif isinstance(value, np.bool_):
             value = bool(value)
 

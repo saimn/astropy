@@ -887,6 +887,16 @@ class TestHeaderFunctions(FitsTestCase):
             assert len(header) == 1
             assert header["bla bla"], "TESTE"
 
+    def test_hierarch_with_long_value(self):
+        header = fits.Header()
+        value = "a" * 100
+        match = f"Value '{value}' is too long for a HIERARCH keyword"
+        with pytest.raises(ValueError, match=match):
+            header["HIERARCH LONG KEYWORD"] = value
+
+        with pytest.raises(ValueError, match=match):
+            fits.Header({"HIERARCH LONG KEYWORD": value})
+
     def test_header_setitem_invalid(self):
         header = fits.Header()
 
