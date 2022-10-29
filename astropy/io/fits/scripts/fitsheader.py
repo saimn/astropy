@@ -267,24 +267,18 @@ class TableHeaderFormatter(HeaderFormatter):
         return None
 
 
-def print_headers_traditional(args):
-    """Prints FITS header(s) using the traditional 80-char format.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Arguments passed from the command-line as defined below.
-    """
-    for idx, filename in enumerate(args.filename):  # support wildcards
-        if idx > 0 and not args.keyword:
+def print_headers_traditional(
+    filenames, extensions=None, keywords=None, compressed=False
+):
+    """Prints FITS header(s) using the traditional 80-char format."""
+    for idx, filename in enumerate(filenames):  # support wildcards
+        if idx > 0 and not keywords:
             print()  # print a newline between different files
 
         formatter = None
         try:
             formatter = HeaderFormatter(filename)
-            print(
-                formatter.parse(args.extensions, args.keyword, args.compressed), end=""
-            )
+            print(formatter.parse(extensions, keywords, compressed), end="")
         except OSError as e:
             log.error(str(e))
         finally:
@@ -292,21 +286,15 @@ def print_headers_traditional(args):
                 formatter.close()
 
 
-def print_headers_as_table(args):
-    """Prints FITS header(s) in a machine-readable table format.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Arguments passed from the command-line as defined below.
-    """
+def print_headers_as_table(filenames, extensions=None, keywords=None, compressed=False):
+    """Prints FITS header(s) in a machine-readable table format."""
     tables = []
     # Create a Table object for each file
-    for filename in args.filename:  # Support wildcards
+    for filename in filenames:  # Support wildcards
         formatter = None
         try:
             formatter = TableHeaderFormatter(filename)
-            tbl = formatter.parse(args.extensions, args.keyword, args.compressed)
+            tbl = formatter.parse(extensions, keywords, compressed)
             if tbl:
                 tables.append(tbl)
         except OSError as e:
@@ -324,29 +312,23 @@ def print_headers_as_table(args):
         from astropy import table
 
         resulting_table = table.vstack(tables)
-    # Print the string representation of the concatenated table
-    resulting_table.write(sys.stdout, format=args.table)
+
+    return resulting_table
 
 
-def print_headers_as_comparison(args):
-    """Prints FITS header(s) with keywords as columns.
-
-    This follows the dfits+fitsort format.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Arguments passed from the command-line as defined below.
-    """
+def print_headers_as_comparison(
+    filenames, extensions=None, keywords=None, compressed=False
+):
+    """Prints FITS header(s) with keywords as columns, similar to dfits+fitsort."""
     from astropy import table
 
     tables = []
     # Create a Table object for each file
-    for filename in args.filename:  # Support wildcards
+    for filename in filenames:  # Support wildcards
         formatter = None
         try:
             formatter = TableHeaderFormatter(filename, verbose=False)
-            tbl = formatter.parse(args.extensions, args.keyword, args.compressed)
+            tbl = formatter.parse(extensions, keywords, compressed)
             if tbl:
                 # Remove empty keywords
                 tbl = tbl[np.where(tbl["keyword"] != "")]
@@ -392,11 +374,36 @@ def print_headers_as_comparison(args):
                 )
         final_tables.append(table.Table(final_table))
     final_table = table.vstack(final_tables)
-    # Sort if requested
-    if args.sort:
-        final_table.sort(args.sort)
-    # Reorganise to keyword by columns
-    final_table.pprint(max_lines=-1, max_width=-1)
+
+    return final_table
+
+
+_print_function_doc = """
+
+    Parameters
+    ----------
+    filenames : list of str
+        List of FITS filenames.
+
+    extensions : list of int or str, optional
+        Format only specific HDU(s), identified by number or name.
+        The name can be composed of the "EXTNAME" or "EXTNAME,EXTVER"
+        keywords.
+
+    keywords : list of str, optional
+        Keywords for which the value(s) should be returned.
+        If not specified, then the entire header is returned.
+
+    compressed : bool, optional
+        If True, shows the header describing the compression, rather than
+        the header obtained after decompression. (Affects FITS files
+        containing `CompImageHDU` extensions only.)
+
+"""
+if print_headers_as_comparison.__doc__ is not None:
+    print_headers_as_comparison.__doc__ += _print_function_doc
+    print_headers_as_table.__doc__ += _print_function_doc
+    print_headers_traditional.__doc__ += _print_function_doc
 
 
 def main(args=None):
@@ -431,18 +438,13 @@ def main(args=None):
             "multiple keywords; also supports wildcards"
         ),
     )
+
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
         "-t",
         "--table",
-        nargs="?",
-        default=False,
-        metavar="FORMAT",
-        help=(
-            "print the header(s) in machine-readable table format; the "
-            'default format is "ascii.fixed_width" (can be "ascii.csv", '
-            '"ascii.html", "ascii.latex", "fits", etc)'
-        ),
+        action="store_true",
+        help="print the header(s) in machine-readable table format",
     )
     mode_group.add_argument(
         "-f",
@@ -453,6 +455,7 @@ def main(args=None):
             "keyword in a given column (fitsort format) "
         ),
     )
+
     parser.add_argument(
         "-s",
         "--sort",
@@ -465,47 +468,56 @@ def main(args=None):
         ),
     )
     parser.add_argument(
+        "--table-format",
+        help="table format for --fitsort and --table; default is "
+        "ascii.fixed_width for --table and ascii.fixed_width_two_line "
+        "for --fitsort (can be ascii.csv, ascii.html, ascii.latex, etc)",
+    )
+    parser.add_argument(
         "-c",
         "--compressed",
         action="store_true",
-        help=(
-            "for compressed image data, show the true header which describes "
-            "the compression rather than the data"
-        ),
+        help="for compressed image data, show the true header which describes "
+        "the compression rather than the data",
     )
     parser.add_argument(
-        "filename",
-        nargs="+",
-        help="path to one or more files; wildcards are supported",
+        "filename", nargs="+", help="path to one or more files; wildcards are supported"
     )
     args = parser.parse_args(args)
-
-    # If `--table` was used but no format specified,
-    # then use ascii.fixed_width by default
-    if args.table is None:
-        args.table = "ascii.fixed_width"
-
-    if args.sort:
-        args.sort = [key.replace(".", " ") for key in args.sort]
-        if not args.fitsort:
-            log.error(
-                "Sorting with -s/--sort is only supported in conjunction with"
-                " -f/--fitsort"
-            )
-            # 2: Unix error convention for command line syntax
-            sys.exit(2)
 
     if args.keyword:
         args.keyword = [key.replace(".", " ") for key in args.keyword]
 
     # Now print the desired headers
+    tbl = None
     try:
         if args.table:
-            print_headers_as_table(args)
+            tbl = print_headers_as_table(
+                args.filename, args.extensions, args.keyword, args.compressed
+            )
         elif args.fitsort:
-            print_headers_as_comparison(args)
+            tbl = print_headers_as_comparison(
+                args.filename, args.extensions, args.keyword, args.compressed
+            )
         else:
-            print_headers_traditional(args)
+            print_headers_traditional(
+                args.filename, args.extensions, args.keyword, args.compressed
+            )
+
+        if tbl:
+            # Sort if requested
+            if args.sort:
+                args.sort = [key.replace(".", " ") for key in args.sort]
+                tbl.sort(args.sort)
+
+            if args.table_format is None:
+                if args.table:
+                    args.table_format = "ascii.fixed_width"
+                elif args.fitsort:
+                    args.table_format = "ascii.fixed_width_two_line"
+
+            # Print the string representation of the concatenated table
+            tbl.write(sys.stdout, format=args.table_format)
     except OSError:
         # A 'Broken pipe' OSError may occur when stdout is closed prematurely,
         # eg. when calling `fitsheader file.fits | head`. We let this pass.
