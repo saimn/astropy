@@ -629,7 +629,7 @@ class CompImageHDU(BinTableHDU):
             super().__init__(data=None, header=header)
 
             # Store the input image data
-            self.data = data
+            self.__dict__['data'] = data
 
             # Update the table header (_header) to the compressed
             # image format and to match the input data (if any);
@@ -805,7 +805,7 @@ class CompImageHDU(BinTableHDU):
         # Clean up EXTNAME duplicates
         self._remove_unnecessary_default_extnames(self._header)
 
-        image_hdu = ImageHDU(data=self.data, header=self._header)
+        image_hdu = ImageHDU(data=self.data, header=image_header)
         self._image_header = CompImageHeader(self._header, image_hdu.header)
         self._axes = image_hdu._axes
         del image_hdu
@@ -1437,6 +1437,13 @@ class CompImageHDU(BinTableHDU):
             raise TypeError('CompImageHDU data has incorrect type:{}; '
                             'dtype.fields = {}'.format(
                     type(data), data.dtype.fields))
+
+        self.__dict__['data'] = data
+        self._update_header_data(self.header)
+        del self.header
+        # returning the data signals to lazyproperty that we've already handled
+        # setting self.__dict__['data']
+        return data
 
     @lazyproperty
     def compressed_data(self):
