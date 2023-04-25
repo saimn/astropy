@@ -117,27 +117,13 @@ wcslint = "astropy.wcs.wcslint:main"
 
 [tool.setuptools]
 zip-safe = false
-include-package-data = false
+include-package-data = true
 
 [tool.setuptools.packages.find]
 exclude = [ "astropy._dev" ]
-namespaces = false
+namespaces = true
 
 [tool.setuptools.package-data]
-"*" = [
-    "data/*",
-    "data/*/*",
-    "data/*/*/*",
-    "data/*/*/*/*",
-    "data/*/*/*/*/*",
-    "data/*/*/*/*/*/*",
-]
-astropy = [ "astropy.cfg", "CITATION" ]
-"astropy.cosmology" = [ "*.ecsv" ]
-"astropy.utils.tests" = [ "data/.hidden_file.txt" ]
-"astropy.tests.figures" = [ "*.json" ]
-"astropy.wcs" = [ "include/*/*.h" ]
-"astropy.wcs.tests" = [ "extension/*.c" ]
 
 [tool.setuptools_scm]
 write_to = "astropy/_version.py"
