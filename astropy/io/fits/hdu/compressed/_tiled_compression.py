@@ -268,6 +268,12 @@ def _column_dtype(compressed_coldefs, column_name):
 
 
 def _get_data_from_heap(hdu, size, offset, dtype, heap_cache=None):
+    if offset < 0:
+        raise ValueError(
+            "cannot retrieve data from the heap because the offset is "
+            f"negative ({offset})"
+        )
+
     if heap_cache is None:
         return hdu._get_raw_data(size, dtype, hdu._data_offset + hdu._theap + offset)
     else:
