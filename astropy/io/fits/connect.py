@@ -284,16 +284,16 @@ def read_table_fits(
             mask = col.array == b""
             fill_value = b""
 
+        arr = data[col.name]
+        if coltype is np.bytes_:
+            arr = arr.rstrip()
+
         if masked or np.any(mask):
             column = MaskedColumn(
-                data=data[col.name],
-                name=col.name,
-                mask=mask,
-                copy=False,
-                fill_value=fill_value,
+                data=arr, name=col.name, mask=mask, copy=False, fill_value=fill_value
             )
         else:
-            column = Column(data=data[col.name], name=col.name, copy=False)
+            column = Column(data=arr, name=col.name, copy=False)
 
         # Copy over units
         if col.unit is not None:
