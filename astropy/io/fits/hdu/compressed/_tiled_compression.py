@@ -351,6 +351,9 @@ def decompress_image_data_section(
     compressed_data_column = np.array(compressed_data["COMPRESSED_DATA"])
     compressed_data_dtype = _column_dtype(compressed_coldefs, "COMPRESSED_DATA")
 
+    if compressed_data_column.dtype.itemsize == 4:
+        compressed_data_column = compressed_data_column.astype(np.uint32)
+
     if "ZBLANK" in compressed_coldefs.dtype.names:
         zblank_column = np.array(compressed_data["ZBLANK"])
     else:
@@ -398,6 +401,10 @@ def decompress_image_data_section(
                 gzip_compressed_data_dtype = _column_dtype(
                     compressed_coldefs, "GZIP_COMPRESSED_DATA"
                 )
+                if gzip_compressed_data_column.dtype.itemsize == 4:
+                    gzip_compressed_data_column = gzip_compressed_data_column.astype(
+                        np.uint32
+                    )
 
             # When quantizing floating point data, sometimes the data will not
             # quantize efficiently. In these cases the raw floating point data can
