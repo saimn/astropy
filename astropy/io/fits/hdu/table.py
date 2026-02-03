@@ -1430,6 +1430,8 @@ class BinTableHDU(_TableBaseHDU):
                 # (though it's happy to do that in other contexts), so we have
                 # to convert the string representation for it:
                 return complex(val)
+            elif recformats[col][0] == FITS2NUMPY["A"]:
+                return val.rstrip()
             else:
                 return val
 

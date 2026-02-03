@@ -339,14 +339,12 @@ class TestSingleTable:
         t = Table.read(filename, character_as_bytes=character_as_bytes)
         assert t["c2"].tolist() == ["abc", "xy"]
 
-        t = Table.read(
-            filename, character_as_bytes=character_as_bytes, strip_spaces=False
-        )
-        assert t["c2"].tolist() == ["abc", "xy "]
+        t = Table.read(filename, character_as_bytes=character_as_bytes)
+        assert t["c2"].tolist() == ["abc", "xy"]
 
         # strip_spaces automatically deactivated when memmap is enabled.
         t = Table.read(filename, character_as_bytes=character_as_bytes, memmap=True)
-        assert t["c2"].tolist() == ["abc", "xy "]
+        assert t["c2"].tolist() == ["abc", "xy"]
         del t
         gc.collect()
 
@@ -738,7 +736,7 @@ def test_masking_regression_1795():
     assert not hasattr(t["c3"], "mask")
     assert not hasattr(t["c4"], "mask")
     assert np.all(t["c1"].data == np.array([1, 2]))
-    assert np.all(t["c2"].data == np.array([b"abc", b"xy "]))
+    assert np.all(t["c2"].data == np.array([b"abc", b"xy"]))
     assert_allclose(t["c3"].data, np.array([3.70000007153, 6.6999997139]))
     assert np.all(t["c4"].data == np.array([False, True]))
 

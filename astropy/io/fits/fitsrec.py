@@ -9,7 +9,6 @@ from contextlib import suppress
 import numpy as np
 
 from astropy.utils import lazyproperty
-from astropy.utils.compat import chararray, get_chararray
 from astropy.utils.exceptions import AstropyUserWarning
 
 from ._logical_helpers import (
@@ -901,7 +900,7 @@ class FITS_rec(np.recarray):
                 dt = np.dtype(recformat.dtype + str(1))
                 arr_len = count * dt.itemsize
                 da = raw_data[offset : offset + arr_len].view(dt)
-                da = get_chararray(da.view(dtype=dt), itemsize=count)
+                # da = get_chararray(da.view(dtype=dt), itemsize=count)
                 dummy[idx] = decode_ascii(da)
             elif is_logical_vla:
                 buf = raw_data[offset : offset + count]
@@ -960,8 +959,8 @@ class FITS_rec(np.recarray):
         # column are filled with spaces, and *not*, say, nulls; this causes
         # functions like replace to potentially leave gibberish bytes in the
         # array buffer.
-        dummy = np.char.ljust(field, format.width)
-        dummy = np.char.replace(dummy, encode_ascii("D"), encode_ascii("E"))
+        dummy = np.strings.ljust(field, format.width)
+        dummy = np.strings.replace(dummy, encode_ascii("D"), encode_ascii("E"))
 
         # Convert all fields equal to the TNULL value (nullval) to either NaN
         # for float columns or 0 for the other fields.
@@ -970,11 +969,11 @@ class FITS_rec(np.recarray):
         else:
             null_fill = str(ASCIITNULL)
         null_fill = encode_ascii(null_fill.rjust(format.width))
-        dummy = np.where(np.char.strip(dummy) == nullval, null_fill, dummy)
+        dummy = np.where(np.strings.strip(dummy) == nullval, null_fill, dummy)
 
         # always replace empty fields, see https://github.com/astropy/astropy/pull/5394
         if nullval != b"":
-            dummy = np.where(np.char.strip(dummy) == b"", null_fill, dummy)
+            dummy = np.where(np.strings.strip(dummy) == b"", null_fill, dummy)
 
         try:
             dummy = np.array(dummy, dtype=recformat)
@@ -1117,6 +1116,7 @@ class FITS_rec(np.recarray):
                     )
                 field = np.equal(field, ord("T"))
         elif _str:
+            field = np.strings.rstrip(field)
             if not self._character_as_bytes:
                 with suppress(UnicodeDecodeError):
                     field = decode_ascii(field)
@@ -1318,7 +1318,7 @@ class FITS_rec(np.recarray):
                 if isinstance(self._coldefs, _AsciiColDefs):
                     self._scale_back_ascii(index, dummy, raw_field)
                 # binary table string column
-                elif isinstance(raw_field, chararray):
+                elif _str:
                     self._scale_back_strings(index, dummy, raw_field)
                 # all other binary table columns
                 else:
@@ -1475,16 +1475,8 @@ class FITS_rec(np.recarray):
 def _get_recarray_field(array, key):
     """
     Compatibility function for using the recarray base class's field method.
-    This incorporates the legacy functionality of returning string arrays as
-    Numeric-style chararray objects.
     """
-    # Numpy >= 1.10.dev recarray no longer returns chararrays for strings
-    # This is currently needed for backwards-compatibility and for
-    # automatic truncation of trailing whitespace
-    field = np.recarray.field(array, key)
-    if field.dtype.char in ("S", "U") and not isinstance(field, chararray):
-        field = field.view(chararray)
-    return field
+    return np.recarray.field(array, key)
 
 
 class _UnicodeArrayEncodeError(UnicodeEncodeError):

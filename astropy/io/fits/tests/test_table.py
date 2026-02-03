@@ -25,7 +25,7 @@ from astropy.io.fits.verify import VerifyError
 from astropy.table import Table
 from astropy.units import Unit, UnitsWarning, UnrecognizedUnit
 from astropy.utils.compat import get_chararray
-from astropy.utils.exceptions import AstropyDeprecationWarning, AstropyUserWarning
+from astropy.utils.exceptions import AstropyUserWarning
 
 from .conftest import FitsTestCase
 from .test_connect import TestMultipleHDU
@@ -201,7 +201,7 @@ class TestTableFunctions(FitsTestCase):
         x2 = fits.ColDefs(tt[1])
         t2 = fits.BinTableHDU.from_columns(x2, nrows=2)
         ra = np.rec.array(
-            [(1, "abc", 3.7000002861022949, 0), (2, "xy ", 6.6999998092651367, 1)],
+            [(1, "abc", 3.7000002861022949, 0), (2, "xy", 6.6999998092651367, 1)],
             names="c1, c2, c3, c4",
         )
 
@@ -270,7 +270,7 @@ class TestTableFunctions(FitsTestCase):
         assert t[1].columns.info(output=False) == info
 
         ra = np.rec.array(
-            [(1, "abc", 3.7000002861022949, 0), (2, "xy ", 6.6999998092651367, 1)],
+            [(1, "abc", 3.7000002861022949, 0), (2, "xy", 6.6999998092651367, 1)],
             names="c1, c2, c3, c4",
         )
 
@@ -2253,9 +2253,8 @@ class TestTableFunctions(FitsTestCase):
             assert h[1].header["TDIM1"] == "(3,3,3)"
             assert len(h[1].data) == 2
             assert len(h[1].data[0]) == 1
-            assert (
-                h[1].data.field(0)[0] == np.strings.decode(recarr.field(0)[0], "ascii")
-            ).all()
+            expected = np.strings.rstrip(np.strings.decode(recarr.field(0)[0], "ascii"))
+            assert (h[1].data.field(0)[0] == expected).all()
 
         with fits.open(self.temp("test.fits")) as h:
             # Access the data; I think this is necessary to exhibit the bug
@@ -2268,9 +2267,8 @@ class TestTableFunctions(FitsTestCase):
             assert h[1].header["TDIM1"] == "(3,3,3)"
             assert len(h[1].data) == 2
             assert len(h[1].data[0]) == 1
-            assert (
-                h[1].data.field(0)[0] == np.strings.decode(recarr.field(0)[0], "ascii")
-            ).all()
+            expected = np.strings.rstrip(np.strings.decode(recarr.field(0)[0], "ascii"))
+            assert (h[1].data.field(0)[0] == expected).all()
 
     def test_new_table_with_nd_column(self):
         """Regression test for
@@ -2292,15 +2290,8 @@ class TestTableFunctions(FitsTestCase):
 
         with fits.open(self.temp("test.fits")) as h:
             # Need to force string arrays to byte arrays in order to compare
-            # correctly on Python 3
-            with pytest.warns(
-                AstropyDeprecationWarning, match="chararray is deprecated.*"
-            ):
-                assert (h[1].data["str"].encode("ascii") == arra).all()
-            with pytest.warns(
-                AstropyDeprecationWarning, match="chararray is deprecated.*"
-            ):
-                assert (h[1].data["strarray"].encode("ascii") == arrb).all()
+            assert (np.strings.encode(h[1].data["str"], "ascii") == arra).all()
+            assert (np.strings.encode(h[1].data["strarray"], "ascii") == arrb).all()
             assert (h[1].data["intarray"] == arrc).all()
 
     def test_mismatched_tform_and_tdim(self):

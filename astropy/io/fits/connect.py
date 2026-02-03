@@ -297,8 +297,9 @@ def read_table_fits(
         arr = data[col.name]
         coltype = col.dtype.subdtype[0].type if col.dtype.subdtype else col.dtype.type
 
-        if strip_spaces and coltype is np.bytes_:
-            arr = np.strings.rstrip(arr)
+        # FIXME: remove strip_spaces ?
+        # if strip_spaces and coltype is np.bytes_:
+        #     arr = np.strings.rstrip(arr)
 
         # Check if column is masked. Here, we make a guess based on the
         # presence of FITS mask values. For integer columns, this is simply
