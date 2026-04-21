@@ -448,8 +448,8 @@ class FITS_rec(np.recarray):
                 # format for ASCII tables
                 if fitsformat._pseudo_logical:
                     # Hack to support converting from 8-bit T/F characters
-                    # Normally the column array is a chararray of 1 character
-                    # strings, but we need to view it as a normal ndarray of
+                    # Normally the column array is an array of 1 character
+                    # strings, but we need to view it as a ndarray of
                     # 8-bit ints to fill it with ASCII codes for 'T' and 'F'
                     outarr = field.view(np.uint8, np.ndarray)[:n]
                 elif arr.dtype.kind not in ("S", "U"):
@@ -900,7 +900,7 @@ class FITS_rec(np.recarray):
                 dt = np.dtype(recformat.dtype + str(1))
                 arr_len = count * dt.itemsize
                 da = raw_data[offset : offset + arr_len].view(dt)
-                # da = get_chararray(da.view(dtype=dt), itemsize=count)
+                da = da.view(dtype=dt).astype((dt, count))
                 dummy[idx] = decode_ascii(da)
             elif is_logical_vla:
                 buf = raw_data[offset : offset + count]

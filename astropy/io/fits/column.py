@@ -15,7 +15,7 @@ from textwrap import indent
 import numpy as np
 
 from astropy.utils import lazyproperty
-from astropy.utils.compat import chararray, get_chararray
+from astropy.utils.compat import chararray
 from astropy.utils.exceptions import AstropyUserWarning
 
 from .card import CARD_LENGTH, Card
@@ -702,7 +702,7 @@ class Column(NotifierMixin):
             except Exception:
                 try:  # then try to convert it to a strings array
                     itemsize = int(recformat[1:])
-                    array = get_chararray(array, itemsize=itemsize)
+                    array = array.astype((array.dtype, itemsize))
                 except ValueError:
                     # then try variable length array
                     # Note: This includes _FormatQ by inheritance
@@ -1387,7 +1387,7 @@ class Column(NotifierMixin):
                         fsize = dims[-1]
                     else:
                         fsize = np.dtype(format.recformat).itemsize
-                    return get_chararray(array, itemsize=fsize, copy=False)
+                    return array.astype((array.dtype, fsize), copy=False)
                 else:
                     return _convert_array(array, np.dtype(format.recformat))
             elif "L" in format:
@@ -2086,7 +2086,7 @@ class _VLF(np.ndarray):
             try:
                 # this handles ['abc'] and [['a','b','c']]
                 # equally, beautiful!
-                input = [get_chararray(x, itemsize=1) for x in input]
+                input = [x.astype((x.dtype, 1)) for x in input]
             except Exception:
                 raise ValueError(f"Inconsistent input data array: {input}")
 
@@ -2112,7 +2112,7 @@ class _VLF(np.ndarray):
         elif isinstance(value, chararray) and value.itemsize == 1:
             pass
         elif self.element_dtype == "S":
-            value = get_chararray(value, itemsize=1)
+            value = value.astype((value.dtype, 1))
         else:
             value = np.array(value, dtype=self.element_dtype)
         np.ndarray.__setitem__(self, key, value)
@@ -2281,7 +2281,8 @@ def _makep(array, descr_output, format, nrows=None):
             else:
                 rowval = [0] * data_output.max
         if format.dtype == "S":
-            data_output[idx] = get_chararray(encode_ascii(rowval), itemsize=1)
+            rowval = encode_ascii(rowval)
+            data_output[idx] = rowval.astype((rowval.dtype, 1))
         elif is_logical_bytes:
             # |S1 byte input is preserved verbatim so NULL (b'\x00')
             # survives a round-trip.
